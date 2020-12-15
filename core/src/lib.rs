@@ -1,7 +1,9 @@
+mod typegen;
+
 #[cfg(test)]
 mod tests {
     use std::{env, fs, io::Read, path};
-    use codec::Decode;
+    use scale::Decode;
 
     #[test]
     fn decode_metadata() {
