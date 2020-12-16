@@ -40,8 +40,6 @@ where
 mod tests {
     use std::{
         env,
-        fs,
-        io::Read,
         path,
     };
 

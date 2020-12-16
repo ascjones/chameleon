@@ -169,7 +169,7 @@ where
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
+        _types: &RegistryReadOnly<S>,
     ) -> syn::Type {
         let ident = ty
             .path()
