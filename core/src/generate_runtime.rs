@@ -1,14 +1,27 @@
 use crate::TokenStream2;
-use frame_metadata::{RuntimeMetadataPrefixed, RuntimeMetadataLastVersion, RuntimeMetadata};
-use scale_info::prelude::string::ToString;
-use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly};
+use frame_metadata::{
+    RuntimeMetadata,
+    RuntimeMetadataLastVersion,
+    RuntimeMetadataPrefixed,
+};
 use quote::{
-    quote,
     format_ident,
+    quote,
     IdentFragment,
 };
+use scale_info::{
+    form::{
+        CompactForm,
+        FormString,
+    },
+    prelude::string::ToString,
+    RegistryReadOnly,
+};
 
-pub fn generate_runtime<S>(mod_name: &str, metadata: RuntimeMetadataPrefixed<S>) -> TokenStream2
+pub fn generate_runtime<S>(
+    mod_name: &str,
+    metadata: RuntimeMetadataPrefixed<S>,
+) -> TokenStream2
 where
     S: FormString + From<&'static str> + ToString + IdentFragment,
 {
@@ -39,7 +52,7 @@ where
 {
     fn generate_code(&self, types: &RegistryReadOnly<S>) -> TokenStream2 {
         match self {
-            Self::V12(metadata) => metadata.generate_code(types)
+            Self::V12(metadata) => metadata.generate_code(types),
         }
     }
 }
@@ -49,19 +62,16 @@ where
     S: FormString + From<&'static str> + IdentFragment,
 {
     fn generate_code(&self, types: &RegistryReadOnly<S>) -> TokenStream2 {
-        let modules = self.modules
-            .iter()
-            .map(|module| {
-                let mod_name = format_ident!("{}", module.name);
-                quote! {
-                    mod #mod_name {
+        let modules = self.modules.iter().map(|module| {
+            let mod_name = format_ident!("{}", module.name);
+            quote! {
+                mod #mod_name {
 
-                    }
                 }
-            });
+            }
+        });
         quote! {
             #( #modules )*
         }
     }
 }
-
