@@ -154,7 +154,7 @@ where
         types: &RegistryReadOnly<S>,
     ) {
         let type_name = self.type_name(ty, types);
-        let fields = type_fields(self.fields(), types);
+        let fields = composite_fields(self.fields(), types, true);
         let ty_toks = quote! {
             pub struct #type_name #fields
         };
@@ -193,7 +193,7 @@ where
             let fields = if variant.fields().is_empty() {
                 quote! {}
             } else {
-                type_fields(variant.fields(), types)
+                composite_fields(variant.fields(), types, false)
             };
             quote! {
                 #variant_name #fields
@@ -327,9 +327,10 @@ where
     }
 }
 
-fn type_fields<S>(
+fn composite_fields<S>(
     fields: &[Field<CompactForm<S>>],
     types: &RegistryReadOnly<S>,
+    is_struct: bool,
 ) -> TokenStream2
 where
     S: FormString + From<&'static str> + ToString + IdentFragment,
@@ -342,7 +343,11 @@ where
                 format_ident!("{}", field.name().expect("named field without a name"));
             let ty = types.resolve(field.ty().id()).expect("type not resolved");
             let ty = ty.type_name(&ty, types);
-            quote! { pub #name: #ty }
+            if is_struct {
+                quote! { pub #name: #ty }
+            } else {
+                quote! { #name: #ty }
+            }
         });
         quote! {
             {
@@ -353,12 +358,18 @@ where
         let fields = fields.iter().map(|field| {
             let ty = types.resolve(field.ty().id()).expect("type not resolved");
             let ty = ty.type_name(&ty, types);
-            quote! { pub #ty }
+            if is_struct {
+                quote! { pub #ty }
+            } else {
+                quote! { #ty }
+            }
         });
-        quote! {
-            (
-                #( #fields, )*
-            );
+        let fields = quote! { ( #( #fields, )* ) };
+        if is_struct {
+            // add a semicolon for tuple structs
+            quote! { #fields; }
+        } else {
+            fields
         }
     } else {
         panic!("Fields must be either all named or all unnamed")
@@ -466,6 +477,35 @@ mod tests {
                 }
             }
             .to_string()
+        )
+    }
+
+    #[test]
+    fn generate_enum() {
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        enum E {
+            A,
+            B (bool),
+            C { a: u32 },
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<E>());
+
+        let types = generate("root", &registry.into());
+
+        assert_eq!(
+            types.to_string(),
+            quote! {
+                mod root {
+                    pub enum E {
+                        A,
+                        B (bool,),
+                        C { a: u32, },
+                    }
+                }
+            }.to_string()
         )
     }
 }
