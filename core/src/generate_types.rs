@@ -12,6 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use scale_info::prelude::string::ToString;
 use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly, TypeDef, Type, TypeDefPrimitive, TypeDefComposite, TypeDefVariant, Field, TypeDefArray, TypeDefSequence, TypeDefTuple};
 use proc_macro2::{TokenStream as TokenStream2};
 use quote::{
@@ -23,7 +24,7 @@ use quote::{
 // todo: [AJ] this could be a separate crate so can be used from other macros to generate e.g. all runtime types
 pub fn generate<S>(root_mod: &str, types: &RegistryReadOnly<S>) -> TokenStream2
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
     let mut tokens = TokenStream2::new();
     for (_, ty) in types.enumerate() {
@@ -41,16 +42,16 @@ where
 }
 
 trait GenerateType<S: FormString> {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S;
+    fn type_name(&self, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) -> syn::Type;
     fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>);
 }
 
 impl<S> GenerateType<S> for Type<CompactForm<S>>
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
-        self.type_def().type_name(ty)
+    fn type_name(&self, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) -> syn::Type {
+        self.type_def().type_name(ty, types)
     }
 
     fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
@@ -60,16 +61,16 @@ where
 
 impl<S> GenerateType<S> for TypeDef<CompactForm<S>>
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
+    fn type_name(&self, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) -> syn::Type {
         match self {
-            TypeDef::Composite(composite) => composite.type_name(ty),
-            TypeDef::Variant(variant) => variant.type_name(ty),
-            TypeDef::Sequence(sequence) => sequence.type_name(ty),
-            TypeDef::Array(array) => array.type_name(ty),
-            TypeDef::Tuple(tuple) => tuple.type_name(ty),
-            TypeDef::Primitive(primitive) => primitive.type_name(ty)
+            TypeDef::Composite(composite) => composite.type_name(ty, types),
+            TypeDef::Variant(variant) => variant.type_name(ty, types),
+            TypeDef::Sequence(sequence) => sequence.type_name(ty, types),
+            TypeDef::Array(array) => array.type_name(ty, types),
+            TypeDef::Tuple(tuple) => tuple.type_name(ty, types),
+            TypeDef::Primitive(primitive) => primitive.type_name(ty, types)
         }
     }
 
@@ -87,14 +88,17 @@ where
 
 impl<S> GenerateType<S> for TypeDefComposite<CompactForm<S>>
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
-        ty.path().ident().expect("structs should have a name")
+    fn type_name(&self, ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) -> syn::Type {
+        let ident = ty.path().ident().expect("structs should have a name").to_string();
+        let ty = format_ident!("{}", ident);
+        let path = syn::parse_quote! { #ty };
+        syn::Type::Path(path)
     }
 
     fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
-        let type_name = format_ident!("{}", self.type_name(ty));
+        let type_name = self.type_name(ty, types);
         let fields = type_fields(self.fields(), types);
         let ty_toks =
             quote! {
@@ -106,14 +110,17 @@ where
 
 impl<S> GenerateType<S> for TypeDefVariant<CompactForm<S>>
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
-        ty.path().ident().expect("enums should have a name")
+    fn type_name(&self, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) -> syn::Type {
+        let ident = ty.path().ident().expect("enums should have a name").to_string();
+        let ty = format_ident!("{}", ident);
+        let path = syn::parse_quote! { #ty };
+        syn::Type::Path(path)
     }
 
     fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
-        let type_name = format_ident!("{}", self.type_name(ty));
+        let type_name = self.type_name(ty, types);
         let variants = self.variants().iter()
             .map(|variant| {
                 let variant_name = format_ident!("{}", variant.name());
@@ -128,7 +135,7 @@ where
             });
         let ty_toks = quote! {
             pub enum #type_name {
-                #( #variants )*,
+                #( #variants, )*
             }
         };
         tokens.extend(ty_toks);
@@ -137,65 +144,79 @@ where
 
 impl<S> GenerateType<S> for TypeDefSequence<CompactForm<S>>
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
-        unimplemented!()
+    fn type_name(&self, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) -> syn::Type {
+        let type_param = types.resolve(self.type_param().id()).expect("type not resolved");
+        let sequence_type = type_param.type_name(ty, types);
+        let type_path = syn::parse_quote! { Vec<#sequence_type> };
+        syn::Type::Path(type_path)
     }
 
-    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
-        unimplemented!()
+    fn generate_type(&self, _tokens: &mut TokenStream2, _ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) {
     }
 }
 
 impl<S> GenerateType<S> for TypeDefArray<CompactForm<S>>
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
-        unimplemented!()
+    fn type_name(&self, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) -> syn::Type {
+        let type_param = types.resolve(self.type_param().id()).expect("type not resolved");
+        let array_type = type_param.type_name(ty, types);
+        let array_len = self.len();
+        let array = syn::parse_quote! { [#array_type; #array_len] };
+        syn::Type::Array(array)
     }
 
-    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
-        unimplemented!()
+    fn generate_type(&self, _tokens: &mut TokenStream2, _ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) {
     }
 }
 
 impl<S> GenerateType<S> for TypeDefTuple<CompactForm<S>>
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
-        unimplemented!()
+    fn type_name(&self, _ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) -> syn::Type {
+        let tuple_types = self.fields().iter()
+            .map(|type_id| {
+                let ty = types.resolve(type_id.id()).expect("type not resolved");
+                ty.type_name(ty, types)
+            });
+        let tuple = syn::parse_quote! { (#( # tuple_types )*,) };
+        syn::Type::Tuple(tuple)
     }
 
-    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
-        unimplemented!()
+    fn generate_type(&self, _tokens: &mut TokenStream2, _ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) {
     }
 }
 
 impl<S> GenerateType<S> for TypeDefPrimitive
 where
-    S: FormString + IdentFragment + From<&'static str>,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    fn type_name(&self, _ty: &Type<CompactForm<S>>) -> S {
-        match self {
-            TypeDefPrimitive::Bool => "bool",
-            TypeDefPrimitive::Char => "char",
-            TypeDefPrimitive::Str => "String",
-            TypeDefPrimitive::U8 => "u8",
-            TypeDefPrimitive::U16 => "u16",
-            TypeDefPrimitive::U32 => "u32",
-            TypeDefPrimitive::U64 => "u64",
-            TypeDefPrimitive::U128 => "u128",
-            TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
-            TypeDefPrimitive::I8 => "i8",
-            TypeDefPrimitive::I16 => "i16",
-            TypeDefPrimitive::I32 => "i32",
-            TypeDefPrimitive::I64 => "i64",
-            TypeDefPrimitive::I128 => "i128",
-            TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
-        }.into()
+    fn type_name(&self, _ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) -> syn::Type {
+        let primitive =
+            match self {
+                TypeDefPrimitive::Bool => "bool",
+                TypeDefPrimitive::Char => "char",
+                TypeDefPrimitive::Str => "String",
+                TypeDefPrimitive::U8 => "u8",
+                TypeDefPrimitive::U16 => "u16",
+                TypeDefPrimitive::U32 => "u32",
+                TypeDefPrimitive::U64 => "u64",
+                TypeDefPrimitive::U128 => "u128",
+                TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
+                TypeDefPrimitive::I8 => "i8",
+                TypeDefPrimitive::I16 => "i16",
+                TypeDefPrimitive::I32 => "i32",
+                TypeDefPrimitive::I64 => "i64",
+                TypeDefPrimitive::I128 => "i128",
+                TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
+            };
+        let ident = format_ident!("{}", primitive);
+        let path = syn::parse_quote! { #ident };
+        syn::Type::Path(path)
     }
 
     fn generate_type(&self, _tokens: &mut TokenStream2, _ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) {
@@ -204,7 +225,7 @@ where
 
 fn type_fields<S>(fields: &[Field<CompactForm<S>>], types: &RegistryReadOnly<S>) -> TokenStream2
 where
-    S: FormString + IdentFragment + From<&'static str>,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
     let named = fields.iter().all(|f| f.name().is_some());
     let unnamed = fields.iter().all(|f| f.name().is_none());
@@ -215,7 +236,7 @@ where
                 .map(|field| {
                     let name = format_ident!("{}", field.name().expect("named field without a name"));
                     let ty = types.resolve(field.ty().id()).expect("type not resolved");
-                    let ty = format_ident!("{}", ty.type_name(&ty));
+                    let ty = ty.type_name(&ty, types);
                     quote! { pub #name: #ty }
                 });
         quote! {
@@ -229,7 +250,7 @@ where
                 .iter()
                 .map(|field| {
                     let ty = types.resolve(field.ty().id()).expect("type not resolved");
-                    let ty = format_ident!("{}", ty.type_name(&ty));
+                    let ty = ty.type_name(&ty, types);
                     quote! { pub #ty }
                 });
         quote! {

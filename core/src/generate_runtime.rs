@@ -1,5 +1,6 @@
 use crate::TokenStream2;
 use frame_metadata::{RuntimeMetadataPrefixed, RuntimeMetadataLastVersion, RuntimeMetadata};
+use scale_info::prelude::string::ToString;
 use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly};
 use quote::{
     quote,
@@ -9,7 +10,7 @@ use quote::{
 
 pub fn generate_runtime<S>(mod_name: &str, metadata: RuntimeMetadataPrefixed<S>) -> TokenStream2
 where
-    S: FormString + From<&'static str> + IdentFragment,
+    S: FormString + From<&'static str> + ToString + IdentFragment,
 {
     let types_mod = "types";
     let types = crate::generate_types::generate(types_mod, &metadata.types);
