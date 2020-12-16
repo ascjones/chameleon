@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly, TypeDef, Type, TypeDefPrimitive, TypeDefComposite};
+use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly, TypeDef, Type, TypeDefPrimitive, TypeDefComposite, TypeDefVariant, Field};
 use proc_macro2::{TokenStream as TokenStream2};
 use quote::{
     quote,
@@ -65,7 +65,7 @@ where
     fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
         match self {
             TypeDef::Composite(composite) => composite.type_name(ty),
-            TypeDef::Variant(_) => todo!(),
+            TypeDef::Variant(variant) => variant.type_name(ty),
             TypeDef::Sequence(_) => todo!(),
             TypeDef::Array(_) => todo!(),
             TypeDef::Tuple(_) => todo!(),
@@ -76,7 +76,7 @@ where
     fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
         match self {
             TypeDef::Composite(composite) => composite.generate_type(tokens, ty, types),
-            TypeDef::Variant(_) => {}
+            TypeDef::Variant(variant) => variant.generate_type(tokens, ty, types),
             TypeDef::Sequence(_) => {}
             TypeDef::Array(_) => {}
             TypeDef::Tuple(_) => {}
@@ -94,42 +94,43 @@ where
     }
 
     fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
-        let named = self.fields().iter().all(|f| f.name().is_some());
-        let unnamed = self.fields().iter().all(|f| f.name().is_none());
         let type_name = format_ident!("{}", self.type_name(ty));
+        let fields = type_fields(self.fields(), types);
         let ty_toks =
-            if named {
-                let fields =
-                    self.fields()
-                        .iter()
-                        .map(|field| {
-                            let name = format_ident!("{}", field.name().expect("named field without a name"));
-                            let ty = types.resolve(field.ty().id()).expect("type not resolved");
-                            let ty = format_ident!("{}", ty.type_name(&ty));
-                            quote! { pub #name: #ty }
-                        });
-                quote! {
-                    pub struct #type_name {
-                        #( #fields, )*
-                    }
-                }
-            } else if unnamed {
-                let fields =
-                    self.fields()
-                        .iter()
-                        .map(|field| {
-                            let ty = types.resolve(field.ty().id()).expect("type not resolved");
-                            let ty = format_ident!("{}", ty.type_name(&ty));
-                            quote! { pub #ty }
-                        });
-                quote! {
-                    pub struct #type_name (
-                        #( #fields, )*
-                    );
-                }
-            } else {
-                panic!("Fields must be either all named or all unnamed")
+            quote! {
+                pub struct #type_name #fields
             };
+        tokens.extend(ty_toks);
+    }
+}
+
+impl<S> GenerateType<S> for TypeDefVariant<CompactForm<S>>
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
+        ty.path().ident().expect("enums should have a name")
+    }
+
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
+        let type_name = format_ident!("{}", self.type_name(ty));
+        let variants = self.variants().iter()
+            .map(|variant| {
+                let variant_name = format_ident!("{}", variant.name());
+                let fields = if variant.fields().is_empty() {
+                    quote! { }
+                } else {
+                    type_fields(variant.fields(), types)
+                };
+                quote! {
+                    #variant_name #fields
+                }
+            });
+        let ty_toks = quote! {
+            pub enum #type_name {
+                #( #variants )*,
+            }
+        };
         tokens.extend(ty_toks);
     }
 }
@@ -159,6 +160,46 @@ where
     }
 
     fn generate_type(&self, _tokens: &mut TokenStream2, _ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) {
+    }
+}
+
+fn type_fields<S>(fields: &[Field<CompactForm<S>>], types: &RegistryReadOnly<S>) -> TokenStream2
+where
+    S: FormString + IdentFragment + From<&'static str>,
+{
+    let named = fields.iter().all(|f| f.name().is_some());
+    let unnamed = fields.iter().all(|f| f.name().is_none());
+    if named {
+        let fields =
+            fields
+                .iter()
+                .map(|field| {
+                    let name = format_ident!("{}", field.name().expect("named field without a name"));
+                    let ty = types.resolve(field.ty().id()).expect("type not resolved");
+                    let ty = format_ident!("{}", ty.type_name(&ty));
+                    quote! { pub #name: #ty }
+                });
+        quote! {
+            {
+                #( #fields, )*
+            }
+        }
+    } else if unnamed {
+        let fields =
+            fields
+                .iter()
+                .map(|field| {
+                    let ty = types.resolve(field.ty().id()).expect("type not resolved");
+                    let ty = format_ident!("{}", ty.type_name(&ty));
+                    quote! { pub #ty }
+                });
+        quote! {
+            (
+                #( #fields, )*
+            );
+        }
+    } else {
+        panic!("Fields must be either all named or all unnamed")
     }
 }
 
