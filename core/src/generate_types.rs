@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly, TypeDef, Type, TypeDefPrimitive, TypeDefComposite, TypeDefVariant, Field};
+use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly, TypeDef, Type, TypeDefPrimitive, TypeDefComposite, TypeDefVariant, Field, TypeDefArray, TypeDefSequence, TypeDefTuple};
 use proc_macro2::{TokenStream as TokenStream2};
 use quote::{
     quote,
@@ -66,9 +66,9 @@ where
         match self {
             TypeDef::Composite(composite) => composite.type_name(ty),
             TypeDef::Variant(variant) => variant.type_name(ty),
-            TypeDef::Sequence(_) => todo!(),
-            TypeDef::Array(_) => todo!(),
-            TypeDef::Tuple(_) => todo!(),
+            TypeDef::Sequence(sequence) => sequence.type_name(ty),
+            TypeDef::Array(array) => array.type_name(ty),
+            TypeDef::Tuple(tuple) => tuple.type_name(ty),
             TypeDef::Primitive(primitive) => primitive.type_name(ty)
         }
     }
@@ -77,9 +77,9 @@ where
         match self {
             TypeDef::Composite(composite) => composite.generate_type(tokens, ty, types),
             TypeDef::Variant(variant) => variant.generate_type(tokens, ty, types),
-            TypeDef::Sequence(_) => {}
-            TypeDef::Array(_) => {}
-            TypeDef::Tuple(_) => {}
+            TypeDef::Sequence(sequence) => sequence.generate_type(tokens, ty, types),
+            TypeDef::Array(array) => array.generate_type(tokens, ty, types),
+            TypeDef::Tuple(tuple) => tuple.generate_type(tokens, ty, types),
             TypeDef::Primitive(primitive) => primitive.generate_type(tokens, ty, types)
         }
     }
@@ -132,6 +132,45 @@ where
             }
         };
         tokens.extend(ty_toks);
+    }
+}
+
+impl<S> GenerateType<S> for TypeDefSequence<CompactForm<S>>
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
+        unimplemented!()
+    }
+
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
+        unimplemented!()
+    }
+}
+
+impl<S> GenerateType<S> for TypeDefArray<CompactForm<S>>
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
+        unimplemented!()
+    }
+
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
+        unimplemented!()
+    }
+}
+
+impl<S> GenerateType<S> for TypeDefTuple<CompactForm<S>>
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
+        unimplemented!()
+    }
+
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
+        unimplemented!()
     }
 }
 
