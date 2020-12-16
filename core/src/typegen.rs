@@ -12,18 +12,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use scale_info::{form::CompactForm, RegistryReadOnly, TypeDef, Type, TypeDefPrimitive, TypeDefComposite};
+use scale_info::{form::{CompactForm, FormString}, RegistryReadOnly, TypeDef, Type, TypeDefPrimitive, TypeDefComposite};
 use proc_macro2::{TokenStream as TokenStream2};
 use quote::{
     quote,
     format_ident,
+    IdentFragment,
 };
 
 // todo: [AJ] this could be a separate crate so can be used from other macros to generate e.g. all runtime types
-pub fn generate(root_mod: &str, registry: &RegistryReadOnly) -> TokenStream2 {
+pub fn generate<S>(root_mod: &str, types: &RegistryReadOnly<S>) -> TokenStream2
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
     let mut tokens = TokenStream2::new();
-    for (_, ty) in registry.enumerate() {
-        ty.generate_type(&mut tokens, ty, registry);
+    for (_, ty) in types.enumerate() {
+        ty.generate_type(&mut tokens, ty, types);
     }
     let root_mod = format_ident!("{}", root_mod);
 
@@ -36,23 +40,29 @@ pub fn generate(root_mod: &str, registry: &RegistryReadOnly) -> TokenStream2 {
 	}
 }
 
-trait GenerateType {
-    fn type_name(&self, ty: &Type<CompactForm<String>>) -> String;
-    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<String>>, registry: &RegistryReadOnly);
+trait GenerateType<S: FormString> {
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S;
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>);
 }
 
-impl GenerateType for Type<CompactForm<String>> {
-    fn type_name(&self, ty: &Type<CompactForm<String>>) -> String {
+impl<S> GenerateType<S> for Type<CompactForm<S>>
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
         self.type_def().type_name(ty)
     }
 
-    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<String>>, registry: &RegistryReadOnly) {
-        self.type_def().generate_type(tokens, ty, registry)
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
+        self.type_def().generate_type(tokens, ty, types)
     }
 }
 
-impl GenerateType for TypeDef<CompactForm<String>> {
-    fn type_name(&self, ty: &Type<CompactForm<String>>) -> String {
+impl<S> GenerateType<S> for TypeDef<CompactForm<S>>
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
         match self {
             TypeDef::Composite(composite) => composite.type_name(ty),
             TypeDef::Variant(_) => todo!(),
@@ -63,24 +73,27 @@ impl GenerateType for TypeDef<CompactForm<String>> {
         }
     }
 
-    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<String>>, registry: &RegistryReadOnly) {
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
         match self {
-            TypeDef::Composite(composite) => composite.generate_type(tokens, ty, registry),
+            TypeDef::Composite(composite) => composite.generate_type(tokens, ty, types),
             TypeDef::Variant(_) => {}
             TypeDef::Sequence(_) => {}
             TypeDef::Array(_) => {}
             TypeDef::Tuple(_) => {}
-            TypeDef::Primitive(primitive) => primitive.generate_type(tokens, ty, registry)
+            TypeDef::Primitive(primitive) => primitive.generate_type(tokens, ty, types)
         }
     }
 }
 
-impl GenerateType for TypeDefComposite<CompactForm<String>> {
-    fn type_name(&self, ty: &Type<CompactForm<String>>) -> String {
+impl<S> GenerateType<S> for TypeDefComposite<CompactForm<S>>
+where
+    S: FormString + From<&'static str> + IdentFragment,
+{
+    fn type_name(&self, ty: &Type<CompactForm<S>>) -> S {
         ty.path().ident().expect("structs should have a name")
     }
 
-    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<String>>, registry: &RegistryReadOnly) {
+    fn generate_type(&self, tokens: &mut TokenStream2, ty: &Type<CompactForm<S>>, types: &RegistryReadOnly<S>) {
         let named = self.fields().iter().all(|f| f.name().is_some());
         let unnamed = self.fields().iter().all(|f| f.name().is_none());
         let type_name = format_ident!("{}", self.type_name(ty));
@@ -91,7 +104,7 @@ impl GenerateType for TypeDefComposite<CompactForm<String>> {
                         .iter()
                         .map(|field| {
                             let name = format_ident!("{}", field.name().expect("named field without a name"));
-                            let ty = registry.resolve(field.ty().id()).expect("type not resolved");
+                            let ty = types.resolve(field.ty().id()).expect("type not resolved");
                             let ty = format_ident!("{}", ty.type_name(&ty));
                             quote! { pub #name: #ty }
                         });
@@ -105,7 +118,7 @@ impl GenerateType for TypeDefComposite<CompactForm<String>> {
                     self.fields()
                         .iter()
                         .map(|field| {
-                            let ty = registry.resolve(field.ty().id()).expect("type not resolved");
+                            let ty = types.resolve(field.ty().id()).expect("type not resolved");
                             let ty = format_ident!("{}", ty.type_name(&ty));
                             quote! { pub #ty }
                         });
@@ -121,8 +134,11 @@ impl GenerateType for TypeDefComposite<CompactForm<String>> {
     }
 }
 
-impl GenerateType for TypeDefPrimitive {
-    fn type_name(&self, _ty: &Type<CompactForm<String>>) -> String {
+impl<S> GenerateType<S> for TypeDefPrimitive
+where
+    S: FormString + IdentFragment + From<&'static str>,
+{
+    fn type_name(&self, _ty: &Type<CompactForm<S>>) -> S {
         match self {
             TypeDefPrimitive::Bool => "bool",
             TypeDefPrimitive::Char => "char",
@@ -139,10 +155,10 @@ impl GenerateType for TypeDefPrimitive {
             TypeDefPrimitive::I64 => "i64",
             TypeDefPrimitive::I128 => "i128",
             TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
-        }.to_owned()
+        }.into()
     }
 
-    fn generate_type(&self, _tokens: &mut TokenStream2, _ty: &Type<CompactForm<String>>, _registry: &RegistryReadOnly) {
+    fn generate_type(&self, _tokens: &mut TokenStream2, _ty: &Type<CompactForm<S>>, _types: &RegistryReadOnly<S>) {
     }
 }
 
