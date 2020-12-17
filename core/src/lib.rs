@@ -1,3 +1,4 @@
+use generate_types::TypeGenerator;
 use proc_macro2::TokenStream as TokenStream2;
 use scale::Decode;
 use std::{
@@ -33,7 +34,8 @@ where
     let metadata =
         frame_metadata::RuntimeMetadataPrefixed::<String>::decode(&mut &bytes[..])?;
 
-    Ok(generate_runtime::generate_runtime(mod_name, metadata))
+    let generator = generate_runtime::RuntimeGenerator::new(metadata);
+    Ok(generator.generate_runtime(mod_name))
 }
 
 #[cfg(test)]

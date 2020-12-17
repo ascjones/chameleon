@@ -18,324 +18,208 @@ use quote::{
     quote,
     IdentFragment,
 };
-use scale_info::prelude::num::NonZeroU32;
 use scale_info::{
     form::{
         CompactForm,
         FormString,
     },
-    prelude::string::ToString,
+    prelude::{
+        num::NonZeroU32,
+        string::ToString,
+    },
     Field,
     RegistryReadOnly,
-    Type,
     TypeDef,
-    TypeDefArray,
-    TypeDefComposite,
     TypeDefPrimitive,
-    TypeDefSequence,
-    TypeDefTuple,
-    TypeDefVariant,
 };
 
-// todo: [AJ] this could be a separate crate so can be used from other macros to generate e.g. all runtime types
-pub fn generate<S>(root_mod: &str, types: &RegistryReadOnly<S>) -> TokenStream2
+pub struct TypeGenerator<S: FormString> {
+    types: RegistryReadOnly<S>,
+}
+
+impl<S> TypeGenerator<S>
 where
     S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    let mut tokens = TokenStream2::new();
-    for (_, ty) in types.enumerate() {
-        if ty.path().namespace().is_empty() {
-            // prelude types e.g. Option/Result have no namespace, so we don't generate them
-            continue;
-        }
-        match ty.type_def() {
-            TypeDef::Composite(composite) => {
-                let type_name = composite.type_name(ty, types);
-                let fields = composite_fields(composite.fields(), types, true);
-                let ty_toks = quote! {
-                    pub struct #type_name #fields
-                };
-                tokens.extend(ty_toks);
+    /// Construct a new [`TypeGenerator`] with the given type registry.
+    pub fn new(types: RegistryReadOnly<S>) -> Self {
+        TypeGenerator { types }
+    }
+
+    pub fn generate(&self, root_mod: &str) -> TokenStream2 {
+        let mut tokens = TokenStream2::new();
+        for (_, ty) in self.types.enumerate() {
+            if ty.path().namespace().is_empty() {
+                // prelude types e.g. Option/Result have no namespace, so we don't generate them
+                continue
             }
-            TypeDef::Variant(variant) => {
-                let type_name = variant.type_name(ty, types);
-                let variants = variant
-                    .variants()
-                    .iter()
-                    .map(|v| {
+            let type_name = ty.path().ident().map(|ident| {
+                let ty = format_ident!("{}", ident);
+                let path = syn::parse_quote! { #ty };
+                syn::Type::Path(path)
+            });
+
+            match ty.type_def() {
+                TypeDef::Composite(composite) => {
+                    let type_name = type_name.expect("structs should have a name");
+                    let fields = self.composite_fields(composite.fields(), true);
+                    let ty_toks = quote! {
+                        pub struct #type_name #fields
+                    };
+                    tokens.extend(ty_toks);
+                }
+                TypeDef::Variant(variant) => {
+                    let type_name = type_name.expect("variants should have a name");
+                    let variants = variant.variants().iter().map(|v| {
                         let variant_name = format_ident!("{}", v.name());
                         let fields = if v.fields().is_empty() {
                             quote! {}
                         } else {
-                            composite_fields(v.fields(), types, false)
+                            self.composite_fields(v.fields(), false)
                         };
                         quote! {
                             #variant_name #fields
                         }
                     });
-                let ty_toks = quote! {
-                    pub enum #type_name {
-                        #( #variants, )*
-                    }
-                };
-                tokens.extend(ty_toks);
+                    let ty_toks = quote! {
+                        pub enum #type_name {
+                            #( #variants, )*
+                        }
+                    };
+                    tokens.extend(ty_toks);
+                }
+                _ => (), // all built-in types should already be in scope
             }
-            _ => () // all built-in types should already be in scope
+            // ty.generate_type(&mut tokens, ty, types);
         }
-        // ty.generate_type(&mut tokens, ty, types);
-    }
-    let root_mod = format_ident!("{}", root_mod);
+        let root_mod = format_ident!("{}", root_mod);
 
-    quote! {
-        // required that this be placed at crate root so can do ::registry_types.
-        // alternatively use relative paths? more complicated
-        mod #root_mod {
-            #tokens
+        quote! {
+            // required that this be placed at crate root so can do ::registry_types.
+            // alternatively use relative paths? more complicated
+            mod #root_mod {
+                #tokens
+            }
         }
     }
-}
 
-pub struct Context<S: FormString> {
-    types: RegistryReadOnly<S>,
-}
+    fn composite_fields(
+        &self,
+        fields: &[Field<CompactForm<S>>],
+        is_struct: bool,
+    ) -> TokenStream2 {
+        let named = fields.iter().all(|f| f.name().is_some());
+        let unnamed = fields.iter().all(|f| f.name().is_none());
+        if named {
+            let fields = fields.iter().map(|field| {
+                let name = format_ident!(
+                    "{}",
+                    field.name().expect("named field without a name")
+                );
+                let ty = self.resolve_type(field.ty().id());
+                if is_struct {
+                    quote! { pub #name: #ty }
+                } else {
+                    quote! { #name: #ty }
+                }
+            });
+            quote! {
+                {
+                    #( #fields, )*
+                }
+            }
+        } else if unnamed {
+            let fields = fields.iter().map(|field| {
+                let ty = self.resolve_type(field.ty().id());
+                if is_struct {
+                    quote! { pub #ty }
+                } else {
+                    quote! { #ty }
+                }
+            });
+            let fields = quote! { ( #( #fields, )* ) };
+            if is_struct {
+                // add a semicolon for tuple structs
+                quote! { #fields; }
+            } else {
+                fields
+            }
+        } else {
+            panic!("Fields must be either all named or all unnamed")
+        }
+    }
 
-impl<S> Context<S>
-    where
-        S: FormString + From<&'static str> + ToString + IdentFragment,
-{
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type(&self, id: NonZeroU32) -> syn::Type {
-        let ty = self.types.resolve(id)
+    fn resolve_type(&self, id: NonZeroU32) -> syn::Type {
+        let ty = self
+            .types
+            .resolve(id)
             .expect(&format!("No type with id {} found", id));
 
-        // if !ty.type_params().is_empty() {
-        //     let ident = ty.path().ident();
-        //     match ty.type_def() {
-        //         TypeDef::Composite | TypeDef::Variant()
-        //     }
-        // }
+        let type_params = ty
+            .type_params()
+            .iter()
+            .map(|tp| self.resolve_type(tp.id()))
+            .collect::<Vec<_>>();
 
-        // No special case just use the type name
-        ty.type_name()
-    }
-}
-
-pub trait GenerateType<S: FormString> {
-    fn type_name(
-        &self,
-        ty: &Type<CompactForm<S>>,
-        types: &Context<S>,
-    ) -> syn::Type;
-}
-
-impl<S> GenerateType<S> for Type<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        ty: &Type<CompactForm<S>>,
-        types: &Context<S>,
-    ) -> syn::Type {
-        self.type_def().type_name(ty, types)
-    }
-}
-
-impl<S> GenerateType<S> for TypeDef<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        ty: &Type<CompactForm<S>>,
-        types: &Context<S>,
-    ) -> syn::Type {
-        match self {
-            TypeDef::Composite(composite) => composite.type_name(ty, types),
-            TypeDef::Variant(variant) => variant.type_name(ty, types),
-            TypeDef::Sequence(sequence) => sequence.type_name(ty, types),
-            TypeDef::Array(array) => array.type_name(ty, types),
-            TypeDef::Tuple(tuple) => tuple.type_name(ty, types),
-            TypeDef::Primitive(primitive) => primitive.type_name(ty, types),
-        }
-    }
-}
-
-impl<S> GenerateType<S> for TypeDefComposite<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        ty: &Type<CompactForm<S>>,
-        _cxt: &Context<S>,
-    ) -> syn::Type {
-        let ident = ty
-            .path()
-            .ident()
-            .expect("structs should have a name")
-            .to_string();
-        let ty = format_ident!("{}", ident);
-        let path = syn::parse_quote! { #ty };
-        syn::Type::Path(path)
-    }
-}
-
-impl<S> GenerateType<S> for TypeDefVariant<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        ty: &Type<CompactForm<S>>,
-        _cxt: &Context<S>,
-    ) -> syn::Type {
-        let ident = ty
-            .path()
-            .ident()
-            .expect("enums should have a name")
-            .to_string();
-        let ty = format_ident!("{}", ident);
-        let path = syn::parse_quote! { #ty };
-        syn::Type::Path(path)
-    }
-}
-
-impl<S> GenerateType<S> for TypeDefSequence<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        ty: &Type<CompactForm<S>>,
-        cxt: &Context<S>,
-    ) -> syn::Type {
-        let type_param = cxt
-            .resolve(self.type_param().id())
-            .expect("type not resolved");
-        let sequence_type = type_param.type_name(ty, cxt);
-        let type_path = syn::parse_quote! { Vec<#sequence_type> };
-        syn::Type::Path(type_path)
-    }
-}
-
-impl<S> GenerateType<S> for TypeDefArray<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        ty: &Type<CompactForm<S>>,
-        cxt: &Context<S>,
-    ) -> syn::Type {
-        let type_param = cxt
-            .resolve(self.type_param().id())
-            .expect("type not resolved");
-        let array_type = type_param.type_name(ty, cxt);
-        let array_len = self.len() as usize;
-        let array = syn::parse_quote! { [#array_type; #array_len] };
-        syn::Type::Array(array)
-    }
-}
-
-impl<S> GenerateType<S> for TypeDefTuple<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        _ty: &Type<CompactForm<S>>,
-        cxt: &Context<S>,
-    ) -> syn::Type {
-        let tuple_types = self.fields().iter().map(|type_id| {
-            let ty = cxt.resolve(type_id.id()).expect("type not resolved");
-            ty.type_name(ty, cxt)
-        });
-        let tuple = syn::parse_quote! { (#( # tuple_types )*,) };
-        syn::Type::Tuple(tuple)
-    }
-}
-
-impl<S> GenerateType<S> for TypeDefPrimitive
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    fn type_name(
-        &self,
-        _ty: &Type<CompactForm<S>>,
-        _cxt: &Context<S>,
-    ) -> syn::Type {
-        let primitive = match self {
-            TypeDefPrimitive::Bool => "bool",
-            TypeDefPrimitive::Char => "char",
-            TypeDefPrimitive::Str => "String",
-            TypeDefPrimitive::U8 => "u8",
-            TypeDefPrimitive::U16 => "u16",
-            TypeDefPrimitive::U32 => "u32",
-            TypeDefPrimitive::U64 => "u64",
-            TypeDefPrimitive::U128 => "u128",
-            TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
-            TypeDefPrimitive::I8 => "i8",
-            TypeDefPrimitive::I16 => "i16",
-            TypeDefPrimitive::I32 => "i32",
-            TypeDefPrimitive::I64 => "i64",
-            TypeDefPrimitive::I128 => "i128",
-            TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
-        };
-        let ident = format_ident!("{}", primitive);
-        let path = syn::parse_quote! { #ident };
-        syn::Type::Path(path)
-    }
-}
-
-fn composite_fields<S>(
-    fields: &[Field<CompactForm<S>>],
-    cxt: &Context<S>,
-    is_struct: bool,
-) -> TokenStream2
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    let named = fields.iter().all(|f| f.name().is_some());
-    let unnamed = fields.iter().all(|f| f.name().is_none());
-    if named {
-        let fields = fields.iter().map(|field| {
-            let name =
-                format_ident!("{}", field.name().expect("named field without a name"));
-            let ty = cxt.resolve(field.ty().id()).expect("type not resolved");
-            let ty = ty.type_name(&ty, cxt);
-            if is_struct {
-                quote! { pub #name: #ty }
-            } else {
-                quote! { #name: #ty }
+        match ty.type_def() {
+            TypeDef::Composite(_) | TypeDef::Variant(_) => {
+                let ident = ty
+                    .path()
+                    .ident()
+                    .expect("custom structs/enums should have a name");
+                let ty = format_ident!("{}", ident);
+                let path = if type_params.is_empty() {
+                    syn::parse_quote! { #ty }
+                } else {
+                    syn::parse_quote! { #ty<#( #type_params), *> }
+                };
+                syn::Type::Path(path)
             }
-        });
-        quote! {
-            {
-                #( #fields, )*
+            TypeDef::Sequence(sequence) => {
+                let type_param = self.resolve_type(sequence.type_param().id());
+                let type_path = syn::parse_quote! { Vec<#type_param> };
+                syn::Type::Path(type_path)
+            }
+            TypeDef::Array(array) => {
+                let array_type = self.resolve_type(array.type_param().id());
+                let array_len = array.len() as usize;
+                let array = syn::parse_quote! { [#array_type; #array_len] };
+                syn::Type::Array(array)
+            }
+            TypeDef::Tuple(tuple) => {
+                let tuple_types = tuple
+                    .fields()
+                    .iter()
+                    .map(|type_id| self.resolve_type(type_id.id()));
+                let tuple = syn::parse_quote! { (#( # tuple_types )*,) };
+                syn::Type::Tuple(tuple)
+            }
+            TypeDef::Primitive(primitive) => {
+                let primitive = match primitive {
+                    TypeDefPrimitive::Bool => "bool",
+                    TypeDefPrimitive::Char => "char",
+                    TypeDefPrimitive::Str => "String",
+                    TypeDefPrimitive::U8 => "u8",
+                    TypeDefPrimitive::U16 => "u16",
+                    TypeDefPrimitive::U32 => "u32",
+                    TypeDefPrimitive::U64 => "u64",
+                    TypeDefPrimitive::U128 => "u128",
+                    TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
+                    TypeDefPrimitive::I8 => "i8",
+                    TypeDefPrimitive::I16 => "i16",
+                    TypeDefPrimitive::I32 => "i32",
+                    TypeDefPrimitive::I64 => "i64",
+                    TypeDefPrimitive::I128 => "i128",
+                    TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
+                };
+                let ident = format_ident!("{}", primitive);
+                let path = syn::parse_quote! { #ident };
+                syn::Type::Path(path)
             }
         }
-    } else if unnamed {
-        let fields = fields.iter().map(|field| {
-            let ty = cxt.resolve(field.ty().id()).expect("type not resolved");
-            let ty = ty.type_name(&ty, cxt);
-            if is_struct {
-                quote! { pub #ty }
-            } else {
-                quote! { #ty }
-            }
-        });
-        let fields = quote! { ( #( #fields, )* ) };
-        if is_struct {
-            // add a semicolon for tuple structs
-            quote! { #fields; }
-        } else {
-            fields
-        }
-    } else {
-        panic!("Fields must be either all named or all unnamed")
     }
 }
 
@@ -361,7 +245,8 @@ mod tests {
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<S>());
 
-        let types = generate("root", &registry.into());
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
 
         assert_eq!(
             types.to_string(),
@@ -396,7 +281,8 @@ mod tests {
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<Parent>());
 
-        let types = generate("root", &registry.into());
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
 
         assert_eq!(
             types.to_string(),
@@ -429,7 +315,8 @@ mod tests {
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<Parent>());
 
-        let types = generate("root", &registry.into());
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
 
         assert_eq!(
             types.to_string(),
@@ -449,14 +336,15 @@ mod tests {
         #[derive(TypeInfo)]
         enum E {
             A,
-            B (bool),
+            B(bool),
             C { a: u32 },
         }
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<E>());
 
-        let types = generate("root", &registry.into());
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
 
         assert_eq!(
             types.to_string(),
@@ -468,7 +356,8 @@ mod tests {
                         C { a: u32, },
                     }
                 }
-            }.to_string()
+            }
+            .to_string()
         )
     }
 
@@ -483,7 +372,8 @@ mod tests {
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<S>());
 
-        let types = generate("root", &registry.into());
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
 
         assert_eq!(
             types.to_string(),
@@ -493,7 +383,8 @@ mod tests {
                         pub a: [u8; 32usize],
                     }
                 }
-            }.to_string()
+            }
+            .to_string()
         )
     }
 
@@ -509,7 +400,8 @@ mod tests {
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<S>());
 
-        let types = generate("root", &registry.into());
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
 
         assert_eq!(
             types.to_string(),
@@ -520,7 +412,8 @@ mod tests {
                         pub b: Option<u32>,
                     }
                 }
-            }.to_string()
+            }
+            .to_string()
         )
     }
 }

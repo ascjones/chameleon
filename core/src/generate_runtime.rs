@@ -1,4 +1,7 @@
-use crate::TokenStream2;
+use crate::{
+    TokenStream2,
+    TypeGenerator,
+};
 use frame_metadata::{
     RuntimeMetadata,
     RuntimeMetadataLastVersion,
@@ -15,54 +18,32 @@ use scale_info::{
         FormString,
     },
     prelude::string::ToString,
-    RegistryReadOnly,
 };
 
-pub fn generate_runtime<S>(
-    mod_name: &str,
-    metadata: RuntimeMetadataPrefixed<S>,
-) -> TokenStream2
+pub struct RuntimeGenerator<S: FormString> {
+    metadata: RuntimeMetadataLastVersion<CompactForm<S>>,
+    type_generator: TypeGenerator<S>,
+}
+
+impl<S> RuntimeGenerator<S>
 where
     S: FormString + From<&'static str> + ToString + IdentFragment,
 {
-    let types_mod = "types";
-    let types = crate::generate_types::generate(types_mod, &metadata.types);
-    let runtime = metadata.metadata.generate_code(&metadata.types);
-
-    let mod_name = format_ident!("{}", mod_name);
-    quote! {
-        mod #mod_name {
-            #types
-
-            #runtime
+    pub fn new(metadata: RuntimeMetadataPrefixed<S>) -> Self {
+        match metadata.metadata {
+            RuntimeMetadata::V12(v12) => {
+                Self {
+                    metadata: v12,
+                    type_generator: TypeGenerator::new(metadata.types),
+                }
+            }
         }
     }
-    // generate outer event/call
-    // generate modules
-    // generate calls/events
-}
 
-pub trait GenerateCode<S: FormString> {
-    fn generate_code(&self, types: &RegistryReadOnly<S>) -> TokenStream2;
-}
-
-impl<S> GenerateCode<S> for RuntimeMetadata<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + IdentFragment,
-{
-    fn generate_code(&self, types: &RegistryReadOnly<S>) -> TokenStream2 {
-        match self {
-            Self::V12(metadata) => metadata.generate_code(types),
-        }
-    }
-}
-
-impl<S> GenerateCode<S> for RuntimeMetadataLastVersion<CompactForm<S>>
-where
-    S: FormString + From<&'static str> + IdentFragment,
-{
-    fn generate_code(&self, types: &RegistryReadOnly<S>) -> TokenStream2 {
-        let modules = self.modules.iter().map(|module| {
+    pub fn generate_runtime(&self, mod_name: &str) -> TokenStream2 {
+        let types_mod = "types";
+        let types = self.type_generator.generate(types_mod);
+        let modules = self.metadata.modules.iter().map(|module| {
             let mod_name = format_ident!("{}", module.name);
             quote! {
                 mod #mod_name {
@@ -70,8 +51,17 @@ where
                 }
             }
         });
+
+        let mod_name = format_ident!("{}", mod_name);
         quote! {
-            #( #modules )*
+            mod #mod_name {
+                #types
+
+                #( #modules )*
+            }
         }
+        // generate outer event/call
+        // generate modules
+        // generate calls/events
     }
 }
