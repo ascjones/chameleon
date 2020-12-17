@@ -67,10 +67,31 @@ where
                     }
                 })
                 .collect::<Vec<_>>();
+            let events = module
+                .event
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .iter()
+                .map(|event| {
+                    let name = format_ident!("{}", event.name);
+                    let args = event.arguments.iter().map(|arg| {
+                        self.type_generator.resolve_type(arg.ty.id())
+                        // todo: add docs and #[compact] attr
+                    });
+                    quote! {
+                        pub struct #name (
+                            #( #args ),*
+                        )
+                    }
+                })
+                .collect::<Vec<_>>();
             let call = if !calls.is_empty() {
                 quote! {
                     mod calls {
                         #( #calls )*
+                    }
+                    mod events {
+                        #( #events )*
                     }
                 }
             } else {
@@ -91,18 +112,6 @@ where
                 #( #modules )*
             }
         }
-        // generate outer event/call
-        // generate modules
-        // generate calls/events
+        // todo: generate outer event? needs custom decode for potential changing indices
     }
-
-    // fn generate
-    // fn generate_call(&self, call: &FunctionMetadata<CompactForm<S>>) -> TokenStream2 {
-    //     let variants = call.
-    //     quote! {
-    //         pub enum Call {
-    //             #( #variants ),*
-    //         }
-    //     }
-    // }
 }

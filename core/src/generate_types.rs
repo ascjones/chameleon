@@ -416,4 +416,9 @@ mod tests {
             .to_string()
         )
     }
+
+    #[test]
+    fn generics() {
+        // todo: deduplicate generic types
+    }
 }
