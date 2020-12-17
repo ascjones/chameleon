@@ -18,6 +18,7 @@ use quote::{
     quote,
     IdentFragment,
 };
+use scale_info::prelude::num::NonZeroU32;
 use scale_info::{
     form::{
         CompactForm,
@@ -43,7 +44,45 @@ where
 {
     let mut tokens = TokenStream2::new();
     for (_, ty) in types.enumerate() {
-        ty.generate_type(&mut tokens, ty, types);
+        if ty.path().namespace().is_empty() {
+            // prelude types e.g. Option/Result have no namespace, so we don't generate them
+            continue;
+        }
+        match ty.type_def() {
+            TypeDef::Composite(composite) => {
+                let type_name = composite.type_name(ty, types);
+                let fields = composite_fields(composite.fields(), types, true);
+                let ty_toks = quote! {
+                    pub struct #type_name #fields
+                };
+                tokens.extend(ty_toks);
+            }
+            TypeDef::Variant(variant) => {
+                let type_name = variant.type_name(ty, types);
+                let variants = variant
+                    .variants()
+                    .iter()
+                    .map(|v| {
+                        let variant_name = format_ident!("{}", v.name());
+                        let fields = if v.fields().is_empty() {
+                            quote! {}
+                        } else {
+                            composite_fields(v.fields(), types, false)
+                        };
+                        quote! {
+                            #variant_name #fields
+                        }
+                    });
+                let ty_toks = quote! {
+                    pub enum #type_name {
+                        #( #variants, )*
+                    }
+                };
+                tokens.extend(ty_toks);
+            }
+            _ => () // all built-in types should already be in scope
+        }
+        // ty.generate_type(&mut tokens, ty, types);
     }
     let root_mod = format_ident!("{}", root_mod);
 
@@ -56,18 +95,12 @@ where
     }
 }
 
-trait GenerateType<S: FormString> {
+pub trait GenerateType<S: FormString> {
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
         types: &RegistryReadOnly<S>,
     ) -> syn::Type;
-    fn generate_type(
-        &self,
-        tokens: &mut TokenStream2,
-        ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
-    );
 }
 
 impl<S> GenerateType<S> for Type<CompactForm<S>>
@@ -80,15 +113,6 @@ where
         types: &RegistryReadOnly<S>,
     ) -> syn::Type {
         self.type_def().type_name(ty, types)
-    }
-
-    fn generate_type(
-        &self,
-        tokens: &mut TokenStream2,
-        ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
-    ) {
-        self.type_def().generate_type(tokens, ty, types)
     }
 }
 
@@ -108,22 +132,6 @@ where
             TypeDef::Array(array) => array.type_name(ty, types),
             TypeDef::Tuple(tuple) => tuple.type_name(ty, types),
             TypeDef::Primitive(primitive) => primitive.type_name(ty, types),
-        }
-    }
-
-    fn generate_type(
-        &self,
-        tokens: &mut TokenStream2,
-        ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
-    ) {
-        match self {
-            TypeDef::Composite(composite) => composite.generate_type(tokens, ty, types),
-            TypeDef::Variant(variant) => variant.generate_type(tokens, ty, types),
-            TypeDef::Sequence(sequence) => sequence.generate_type(tokens, ty, types),
-            TypeDef::Array(array) => array.generate_type(tokens, ty, types),
-            TypeDef::Tuple(tuple) => tuple.generate_type(tokens, ty, types),
-            TypeDef::Primitive(primitive) => primitive.generate_type(tokens, ty, types),
         }
     }
 }
@@ -146,20 +154,6 @@ where
         let path = syn::parse_quote! { #ty };
         syn::Type::Path(path)
     }
-
-    fn generate_type(
-        &self,
-        tokens: &mut TokenStream2,
-        ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
-    ) {
-        let type_name = self.type_name(ty, types);
-        let fields = composite_fields(self.fields(), types, true);
-        let ty_toks = quote! {
-            pub struct #type_name #fields
-        };
-        tokens.extend(ty_toks);
-    }
 }
 
 impl<S> GenerateType<S> for TypeDefVariant<CompactForm<S>>
@@ -180,32 +174,6 @@ where
         let path = syn::parse_quote! { #ty };
         syn::Type::Path(path)
     }
-
-    fn generate_type(
-        &self,
-        tokens: &mut TokenStream2,
-        ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
-    ) {
-        let type_name = self.type_name(ty, types);
-        let variants = self.variants().iter().map(|variant| {
-            let variant_name = format_ident!("{}", variant.name());
-            let fields = if variant.fields().is_empty() {
-                quote! {}
-            } else {
-                composite_fields(variant.fields(), types, false)
-            };
-            quote! {
-                #variant_name #fields
-            }
-        });
-        let ty_toks = quote! {
-            pub enum #type_name {
-                #( #variants, )*
-            }
-        };
-        tokens.extend(ty_toks);
-    }
 }
 
 impl<S> GenerateType<S> for TypeDefSequence<CompactForm<S>>
@@ -223,14 +191,6 @@ where
         let sequence_type = type_param.type_name(ty, types);
         let type_path = syn::parse_quote! { Vec<#sequence_type> };
         syn::Type::Path(type_path)
-    }
-
-    fn generate_type(
-        &self,
-        _tokens: &mut TokenStream2,
-        _ty: &Type<CompactForm<S>>,
-        _types: &RegistryReadOnly<S>,
-    ) {
     }
 }
 
@@ -251,14 +211,6 @@ where
         let array = syn::parse_quote! { [#array_type; #array_len] };
         syn::Type::Array(array)
     }
-
-    fn generate_type(
-        &self,
-        _tokens: &mut TokenStream2,
-        _ty: &Type<CompactForm<S>>,
-        _types: &RegistryReadOnly<S>,
-    ) {
-    }
 }
 
 impl<S> GenerateType<S> for TypeDefTuple<CompactForm<S>>
@@ -276,14 +228,6 @@ where
         });
         let tuple = syn::parse_quote! { (#( # tuple_types )*,) };
         syn::Type::Tuple(tuple)
-    }
-
-    fn generate_type(
-        &self,
-        _tokens: &mut TokenStream2,
-        _ty: &Type<CompactForm<S>>,
-        _types: &RegistryReadOnly<S>,
-    ) {
     }
 }
 
@@ -316,14 +260,6 @@ where
         let ident = format_ident!("{}", primitive);
         let path = syn::parse_quote! { #ident };
         syn::Type::Path(path)
-    }
-
-    fn generate_type(
-        &self,
-        _tokens: &mut TokenStream2,
-        _ty: &Type<CompactForm<S>>,
-        _types: &RegistryReadOnly<S>,
-    ) {
     }
 }
 
@@ -528,6 +464,33 @@ mod tests {
                 mod root {
                     pub struct S {
                         pub a: [u8; 32usize],
+                    }
+                }
+            }.to_string()
+        )
+    }
+
+    #[test]
+    fn option_fields() {
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: Option<bool>,
+            b: Option<u32>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+
+        let types = generate("root", &registry.into());
+
+        assert_eq!(
+            types.to_string(),
+            quote! {
+                mod root {
+                    pub struct S {
+                        pub a: Option<bool>,
+                        pub b: Option<u32>,
                     }
                 }
             }.to_string()

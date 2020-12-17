@@ -1,4 +1,4 @@
-pub use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::TokenStream as TokenStream2;
 use scale::Decode;
 use std::{
     fs,
