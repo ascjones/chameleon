@@ -152,7 +152,7 @@ where
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    fn resolve_type(&self, id: NonZeroU32) -> syn::Type {
+    pub fn resolve_type(&self, id: NonZeroU32) -> syn::Type {
         let ty = self
             .types
             .resolve(id)
@@ -174,7 +174,7 @@ where
                 let path = if type_params.is_empty() {
                     syn::parse_quote! { #ty }
                 } else {
-                    syn::parse_quote! { #ty<#( #type_params), *> }
+                    syn::parse_quote! { #ty< #( #type_params ),* > }
                 };
                 syn::Type::Path(path)
             }
@@ -194,7 +194,7 @@ where
                     .fields()
                     .iter()
                     .map(|type_id| self.resolve_type(type_id.id()));
-                let tuple = syn::parse_quote! { (#( # tuple_types )*,) };
+                let tuple = syn::parse_quote! { (#( # tuple_types ),* ) };
                 syn::Type::Tuple(tuple)
             }
             TypeDef::Primitive(primitive) => {

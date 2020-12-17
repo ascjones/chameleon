@@ -6,6 +6,7 @@ edition = "2018"
 
 [dependencies]
 frame-metadata = { path = "../../paritytech/frame-metadata/frame-metadata", default-features = false }
+heck = "0.3.1"
 proc-macro2 = "1.0"
 quote = "1"
 syn = { version = "1.0", features = ["parsing", "full"] }

@@ -45,9 +45,40 @@ where
         let types = self.type_generator.generate(types_mod);
         let modules = self.metadata.modules.iter().map(|module| {
             let mod_name = format_ident!("{}", module.name);
+            let calls = module
+                .calls
+                .as_ref()
+                .unwrap_or(&Vec::new())
+                .iter()
+                .map(|call| {
+                    use heck::CamelCase as _;
+                    // todo: add free functions to Call mod and doc strings
+                    let name = format_ident!("{}", call.name.to_string().to_camel_case());
+                    let args = call.arguments.iter().map(|arg| {
+                        let name = format_ident!("{}", arg.name);
+                        let ty = self.type_generator.resolve_type(arg.ty.id());
+                        // todo: add docs and #[compact] attr
+                        quote! { #name: #ty }
+                    });
+                    quote! {
+                        pub struct #name {
+                            #( #args ),*
+                        }
+                    }
+                })
+                .collect::<Vec<_>>();
+            let call = if !calls.is_empty() {
+                quote! {
+                    mod calls {
+                        #( #calls )*
+                    }
+                }
+            } else {
+                quote! {}
+            };
             quote! {
                 mod #mod_name {
-
+                    #call
                 }
             }
         });
@@ -64,4 +95,14 @@ where
         // generate modules
         // generate calls/events
     }
+
+    // fn generate
+    // fn generate_call(&self, call: &FunctionMetadata<CompactForm<S>>) -> TokenStream2 {
+    //     let variants = call.
+    //     quote! {
+    //         pub enum Call {
+    //             #( #variants ),*
+    //         }
+    //     }
+    // }
 }
