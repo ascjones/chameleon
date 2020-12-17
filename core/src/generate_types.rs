@@ -247,7 +247,7 @@ where
             .resolve(self.type_param().id())
             .expect("type not resolved");
         let array_type = type_param.type_name(ty, types);
-        let array_len = self.len();
+        let array_len = self.len() as usize;
         let array = syn::parse_quote! { [#array_type; #array_len] };
         syn::Type::Array(array)
     }
@@ -503,6 +503,31 @@ mod tests {
                         A,
                         B (bool,),
                         C { a: u32, },
+                    }
+                }
+            }.to_string()
+        )
+    }
+
+    #[test]
+    fn generate_array_field() {
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: [u8; 32],
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+
+        let types = generate("root", &registry.into());
+
+        assert_eq!(
+            types.to_string(),
+            quote! {
+                mod root {
+                    pub struct S {
+                        pub a: [u8; 32usize],
                     }
                 }
             }.to_string()
