@@ -95,11 +95,38 @@ where
     }
 }
 
+pub struct Context<S: FormString> {
+    types: RegistryReadOnly<S>,
+}
+
+impl<S> Context<S>
+    where
+        S: FormString + From<&'static str> + ToString + IdentFragment,
+{
+    /// # Panics
+    ///
+    /// If no type with the given id found in the type registry.
+    pub fn resolve_type(&self, id: NonZeroU32) -> syn::Type {
+        let ty = self.types.resolve(id)
+            .expect(&format!("No type with id {} found", id));
+
+        // if !ty.type_params().is_empty() {
+        //     let ident = ty.path().ident();
+        //     match ty.type_def() {
+        //         TypeDef::Composite | TypeDef::Variant()
+        //     }
+        // }
+
+        // No special case just use the type name
+        ty.type_name()
+    }
+}
+
 pub trait GenerateType<S: FormString> {
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
+        types: &Context<S>,
     ) -> syn::Type;
 }
 
@@ -110,7 +137,7 @@ where
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
+        types: &Context<S>,
     ) -> syn::Type {
         self.type_def().type_name(ty, types)
     }
@@ -123,7 +150,7 @@ where
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
+        types: &Context<S>,
     ) -> syn::Type {
         match self {
             TypeDef::Composite(composite) => composite.type_name(ty, types),
@@ -143,7 +170,7 @@ where
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        _types: &RegistryReadOnly<S>,
+        _cxt: &Context<S>,
     ) -> syn::Type {
         let ident = ty
             .path()
@@ -163,7 +190,7 @@ where
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        _types: &RegistryReadOnly<S>,
+        _cxt: &Context<S>,
     ) -> syn::Type {
         let ident = ty
             .path()
@@ -183,12 +210,12 @@ where
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
+        cxt: &Context<S>,
     ) -> syn::Type {
-        let type_param = types
+        let type_param = cxt
             .resolve(self.type_param().id())
             .expect("type not resolved");
-        let sequence_type = type_param.type_name(ty, types);
+        let sequence_type = type_param.type_name(ty, cxt);
         let type_path = syn::parse_quote! { Vec<#sequence_type> };
         syn::Type::Path(type_path)
     }
@@ -201,12 +228,12 @@ where
     fn type_name(
         &self,
         ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
+        cxt: &Context<S>,
     ) -> syn::Type {
-        let type_param = types
+        let type_param = cxt
             .resolve(self.type_param().id())
             .expect("type not resolved");
-        let array_type = type_param.type_name(ty, types);
+        let array_type = type_param.type_name(ty, cxt);
         let array_len = self.len() as usize;
         let array = syn::parse_quote! { [#array_type; #array_len] };
         syn::Type::Array(array)
@@ -220,11 +247,11 @@ where
     fn type_name(
         &self,
         _ty: &Type<CompactForm<S>>,
-        types: &RegistryReadOnly<S>,
+        cxt: &Context<S>,
     ) -> syn::Type {
         let tuple_types = self.fields().iter().map(|type_id| {
-            let ty = types.resolve(type_id.id()).expect("type not resolved");
-            ty.type_name(ty, types)
+            let ty = cxt.resolve(type_id.id()).expect("type not resolved");
+            ty.type_name(ty, cxt)
         });
         let tuple = syn::parse_quote! { (#( # tuple_types )*,) };
         syn::Type::Tuple(tuple)
@@ -238,7 +265,7 @@ where
     fn type_name(
         &self,
         _ty: &Type<CompactForm<S>>,
-        _types: &RegistryReadOnly<S>,
+        _cxt: &Context<S>,
     ) -> syn::Type {
         let primitive = match self {
             TypeDefPrimitive::Bool => "bool",
@@ -265,7 +292,7 @@ where
 
 fn composite_fields<S>(
     fields: &[Field<CompactForm<S>>],
-    types: &RegistryReadOnly<S>,
+    cxt: &Context<S>,
     is_struct: bool,
 ) -> TokenStream2
 where
@@ -277,8 +304,8 @@ where
         let fields = fields.iter().map(|field| {
             let name =
                 format_ident!("{}", field.name().expect("named field without a name"));
-            let ty = types.resolve(field.ty().id()).expect("type not resolved");
-            let ty = ty.type_name(&ty, types);
+            let ty = cxt.resolve(field.ty().id()).expect("type not resolved");
+            let ty = ty.type_name(&ty, cxt);
             if is_struct {
                 quote! { pub #name: #ty }
             } else {
@@ -292,8 +319,8 @@ where
         }
     } else if unnamed {
         let fields = fields.iter().map(|field| {
-            let ty = types.resolve(field.ty().id()).expect("type not resolved");
-            let ty = ty.type_name(&ty, types);
+            let ty = cxt.resolve(field.ty().id()).expect("type not resolved");
+            let ty = ty.type_name(&ty, cxt);
             if is_struct {
                 quote! { pub #ty }
             } else {
