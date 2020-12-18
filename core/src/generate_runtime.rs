@@ -81,16 +81,20 @@ where
                     quote! {
                         pub struct #name (
                             #( #args ),*
-                        )
+                        );
                     }
                 })
                 .collect::<Vec<_>>();
             let call = if !calls.is_empty() {
                 quote! {
                     mod calls {
+                        // todo: use types mod name defined earlier
+                        use super::super::types::*;
                         #( #calls )*
                     }
                     mod events {
+                        // todo: use types mod name defined earlier
+                        use super::super::types::*;
                         #( #events )*
                     }
                 }
