@@ -85,32 +85,40 @@ where
                     }
                 })
                 .collect::<Vec<_>>();
-            let call = if !calls.is_empty() {
+            let calls = if !calls.is_empty() {
                 quote! {
                     mod calls {
                         // todo: use types mod name defined earlier
-                        use super::super::types::*;
+                        use super::*;
                         #( #calls )*
                     }
-                    mod events {
-                        // todo: use types mod name defined earlier
-                        use super::super::types::*;
+                }
+            } else {
+                quote! {}
+            };
+            let events = if !events.is_empty() {
+                quote! {
+                    pub mod events {
+                        use super::*;
                         #( #events )*
                     }
                 }
             } else {
                 quote! {}
             };
+
             quote! {
-                mod #mod_name {
-                    #call
+                pub mod #mod_name {
+                    use super::types::*;
+                    #calls
+                    #events
                 }
             }
         });
 
         let mod_name = format_ident!("{}", mod_name);
         quote! {
-            mod #mod_name {
+            pub mod #mod_name {
                 #types
 
                 #( #modules )*
