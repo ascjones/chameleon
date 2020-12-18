@@ -14,7 +14,7 @@ Accepts a SCALE encoded metadata file via a CLI or a macro, and generates a Rust
 Using the command: `cargo run -p chameleon-cli | rustfmt --edition=2018 --emit=stdout`, generates the following:
 
 ```
-mod node_runtime {
+pub mod node_runtime {
     mod types {
         pub struct Perbill(pub u32);
         pub struct ChangesTrieConfiguration {
@@ -46,9 +46,9 @@ mod node_runtime {
             },
         }
         pub struct AccountId32(pub [u8; 32usize]);
-        pub enum MultiAddress {
-            Id(AccountId32),
-            Index(u32),
+        pub enum MultiAddress<_0, _1> {
+            Id(_0),
+            Index(_1),
             Raw(Vec<u8>),
             Address32([u8; 32usize]),
             Address20([u8; 20usize]),
@@ -58,9 +58,10 @@ mod node_runtime {
             Reserved,
         }
     }
-    mod System {
+    pub mod System {
+        use super::types::*;
         mod calls {
-            use super::super::types::*;
+            use super::*;
             pub struct FillBlock {
                 _ratio: Perbill,
             }
@@ -91,8 +92,8 @@ mod node_runtime {
             }
             pub struct Suicide {}
         }
-        mod events {
-            use super::super::types::*;
+        pub mod events {
+            use super::*;
             pub struct ExtrinsicSuccess(DispatchInfo);
             pub struct ExtrinsicFailed(DispatchError, DispatchInfo);
             pub struct CodeUpdated();
@@ -100,24 +101,31 @@ mod node_runtime {
             pub struct KilledAccount(AccountId32);
         }
     }
-    mod Utility {}
-    mod Babe {}
-    mod Timestamp {
+    pub mod Utility {
+        use super::types::*;
+    }
+    pub mod Babe {
+        use super::types::*;
+    }
+    pub mod Timestamp {
+        use super::types::*;
         mod calls {
-            use super::super::types::*;
+            use super::*;
             pub struct Set {
                 now: u64,
             }
         }
-        mod events {
-            use super::super::types::*;
-        }
     }
-    mod Authorship {}
-    mod Indices {}
-    mod Balances {
+    pub mod Authorship {
+        use super::types::*;
+    }
+    pub mod Indices {
+        use super::types::*;
+    }
+    pub mod Balances {
+        use super::types::*;
         mod calls {
-            use super::super::types::*;
+            use super::*;
             pub struct Transfer {
                 dest: MultiAddress<AccountId32, u32>,
                 value: u128,
@@ -137,8 +145,8 @@ mod node_runtime {
                 value: u128,
             }
         }
-        mod events {
-            use super::super::types::*;
+        pub mod events {
+            use super::*;
             pub struct Endowed(AccountId32, u128);
             pub struct DustLost(AccountId32, u128);
             pub struct Transfer(AccountId32, AccountId32, u128);
@@ -149,30 +157,78 @@ mod node_runtime {
             pub struct ReserveRepatriated(AccountId32, AccountId32, u128, BalanceStatus);
         }
     }
-    mod TransactionPayment {}
-    mod Staking {}
-    mod Session {}
-    mod Democracy {}
-    mod Council {}
-    mod TechnicalCommittee {}
-    mod Elections {}
-    mod TechnicalMembership {}
-    mod Grandpa {}
-    mod Treasury {}
-    mod Contracts {}
-    mod Sudo {}
-    mod ImOnline {}
-    mod AuthorityDiscovery {}
-    mod Offences {}
-    mod Historical {}
-    mod RandomnessCollectiveFlip {}
-    mod Identity {}
-    mod Society {}
-    mod Recovery {}
-    mod Vesting {}
-    mod Scheduler {}
-    mod Proxy {}
-    mod Multisig {}
+    pub mod TransactionPayment {
+        use super::types::*;
+    }
+    pub mod Staking {
+        use super::types::*;
+    }
+    pub mod Session {
+        use super::types::*;
+    }
+    pub mod Democracy {
+        use super::types::*;
+    }
+    pub mod Council {
+        use super::types::*;
+    }
+    pub mod TechnicalCommittee {
+        use super::types::*;
+    }
+    pub mod Elections {
+        use super::types::*;
+    }
+    pub mod TechnicalMembership {
+        use super::types::*;
+    }
+    pub mod Grandpa {
+        use super::types::*;
+    }
+    pub mod Treasury {
+        use super::types::*;
+    }
+    pub mod Contracts {
+        use super::types::*;
+    }
+    pub mod Sudo {
+        use super::types::*;
+    }
+    pub mod ImOnline {
+        use super::types::*;
+    }
+    pub mod AuthorityDiscovery {
+        use super::types::*;
+    }
+    pub mod Offences {
+        use super::types::*;
+    }
+    pub mod Historical {
+        use super::types::*;
+    }
+    pub mod RandomnessCollectiveFlip {
+        use super::types::*;
+    }
+    pub mod Identity {
+        use super::types::*;
+    }
+    pub mod Society {
+        use super::types::*;
+    }
+    pub mod Recovery {
+        use super::types::*;
+    }
+    pub mod Vesting {
+        use super::types::*;
+    }
+    pub mod Scheduler {
+        use super::types::*;
+    }
+    pub mod Proxy {
+        use super::types::*;
+    }
+    pub mod Multisig {
+        use super::types::*;
+    }
 }
 
 ```

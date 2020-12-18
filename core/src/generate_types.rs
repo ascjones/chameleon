@@ -53,16 +53,32 @@ where
                 // prelude types e.g. Option/Result have no namespace, so we don't generate them
                 continue
             }
+            let type_params = ty
+                .type_params()
+                .iter()
+                .enumerate()
+                .map(|(i, tp)| {
+                    let tp_name = format_ident!("_{}", i);
+                    TypeParameter { concrete_type_id: tp.id(), name: tp_name }
+                })
+                .collect::<Vec<_>>();
+
             let type_name = ty.path().ident().map(|ident| {
+                let type_params = if !type_params.is_empty() {
+                    let tps = type_params.iter().map(|tp| tp.name.clone());
+                    quote! { < #( #tps ),* > }
+                } else {
+                    quote! {}
+                };
                 let ty = format_ident!("{}", ident);
-                let path = syn::parse_quote! { #ty };
+                let path = syn::parse_quote! { #ty #type_params};
                 syn::Type::Path(path)
             });
 
             match ty.type_def() {
                 TypeDef::Composite(composite) => {
                     let type_name = type_name.expect("structs should have a name");
-                    let fields = self.composite_fields(composite.fields(), true);
+                    let fields = self.composite_fields(composite.fields(), &type_params, true);
                     let ty_toks = quote! {
                         pub struct #type_name #fields
                     };
@@ -75,7 +91,7 @@ where
                         let fields = if v.fields().is_empty() {
                             quote! {}
                         } else {
-                            self.composite_fields(v.fields(), false)
+                            self.composite_fields(v.fields(), &type_params, false)
                         };
                         quote! {
                             #variant_name #fields
@@ -106,6 +122,7 @@ where
     fn composite_fields(
         &self,
         fields: &[Field<CompactForm<S>>],
+        type_params: &[TypeParameter],
         is_struct: bool,
     ) -> TokenStream2 {
         let named = fields.iter().all(|f| f.name().is_some());
@@ -116,7 +133,7 @@ where
                     "{}",
                     field.name().expect("named field without a name")
                 );
-                let ty = self.resolve_type(field.ty().id());
+                let ty = self.resolve_type(field.ty().id(), type_params);
                 if is_struct {
                     quote! { pub #name: #ty }
                 } else {
@@ -130,7 +147,7 @@ where
             }
         } else if unnamed {
             let fields = fields.iter().map(|field| {
-                let ty = self.resolve_type(field.ty().id());
+                let ty = self.resolve_type(field.ty().id(), type_params);
                 if is_struct {
                     quote! { pub #ty }
                 } else {
@@ -152,7 +169,12 @@ where
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type(&self, id: NonZeroU32) -> syn::Type {
+    pub fn resolve_type(&self, id: NonZeroU32, parent_type_params: &[TypeParameter]) -> syn::Type {
+        if let Some(parent_type_param) = parent_type_params.iter().find(|tp| tp.concrete_type_id == id) {
+            let ty = &parent_type_param.name;
+            return syn::Type::Path(syn::parse_quote! { #ty })
+        }
+
         let ty = self
             .types
             .resolve(id)
@@ -161,7 +183,7 @@ where
         let type_params = ty
             .type_params()
             .iter()
-            .map(|tp| self.resolve_type(tp.id()))
+            .map(|tp| self.resolve_type(tp.id(), parent_type_params))
             .collect::<Vec<_>>();
 
         match ty.type_def() {
@@ -179,12 +201,12 @@ where
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(sequence) => {
-                let type_param = self.resolve_type(sequence.type_param().id());
+                let type_param = self.resolve_type(sequence.type_param().id(), parent_type_params);
                 let type_path = syn::parse_quote! { Vec<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type = self.resolve_type(array.type_param().id());
+                let array_type = self.resolve_type(array.type_param().id(), parent_type_params);
                 let array_len = array.len() as usize;
                 let array = syn::parse_quote! { [#array_type; #array_len] };
                 syn::Type::Array(array)
@@ -193,7 +215,7 @@ where
                 let tuple_types = tuple
                     .fields()
                     .iter()
-                    .map(|type_id| self.resolve_type(type_id.id()));
+                    .map(|type_id| self.resolve_type(type_id.id(), parent_type_params));
                 let tuple = syn::parse_quote! { (#( # tuple_types ),* ) };
                 syn::Type::Tuple(tuple)
             }
@@ -221,6 +243,11 @@ where
             }
         }
     }
+}
+
+pub struct TypeParameter {
+    concrete_type_id: NonZeroU32,
+    name: proc_macro2::Ident,
 }
 
 #[cfg(test)]
@@ -419,6 +446,73 @@ mod tests {
 
     #[test]
     fn generics() {
-        // todo: deduplicate generic types
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct Foo<T> {
+            a: T,
+        }
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct Bar {
+            b: Foo<u32>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<Bar>());
+
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
+
+        assert_eq!(
+            types.to_string(),
+            quote! {
+                mod root {
+                    pub struct Bar {
+                        pub b: Foo<u32>,
+                    }
+                    pub struct Foo<_0> {
+                        pub a: _0,
+                    }
+                }
+            }.to_string()
+        )
     }
+
+    // #[test]
+    // fn generics_nested() {
+    //     #[allow(unused)]
+    //     #[derive(TypeInfo)]
+    //     struct Foo<T, U> {
+    //         a: T,
+    //         a: Option<(T, U)>,
+    //     }
+    //
+    //     #[allow(unused)]
+    //     #[derive(TypeInfo)]
+    //     struct Bar<T> {
+    //         b: Foo<T, u32>,
+    //     }
+    //
+    //     let mut registry = Registry::new();
+    //     registry.register_type(&meta_type::<Bar<bool>>());
+    //
+    //     let generator = TypeGenerator::new(registry.into());
+    //     let types = generator.generate("root");
+    //
+    //     assert_eq!(
+    //         types.to_string(),
+    //         quote! {
+    //             mod root {
+    //                 pub struct Foo<T> {
+    //                     a: T,
+    //                 }
+    //
+    //                 pub struct Bar {
+    //                     b: Foo<u32>,
+    //                 }
+    //             }
+    //         }.to_string()
+    //     )
+    // }
 }

@@ -56,7 +56,7 @@ where
                     let name = format_ident!("{}", call.name.to_string().to_camel_case());
                     let args = call.arguments.iter().map(|arg| {
                         let name = format_ident!("{}", arg.name);
-                        let ty = self.type_generator.resolve_type(arg.ty.id());
+                        let ty = self.type_generator.resolve_type(arg.ty.id(), &[]);
                         // todo: add docs and #[compact] attr
                         quote! { #name: #ty }
                     });
@@ -75,7 +75,7 @@ where
                 .map(|event| {
                     let name = format_ident!("{}", event.name);
                     let args = event.arguments.iter().map(|arg| {
-                        self.type_generator.resolve_type(arg.ty.id())
+                        self.type_generator.resolve_type(arg.ty.id(), &[])
                         // todo: add docs and #[compact] attr
                     });
                     quote! {
