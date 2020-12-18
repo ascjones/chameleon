@@ -479,40 +479,41 @@ mod tests {
         )
     }
 
-    // #[test]
-    // fn generics_nested() {
-    //     #[allow(unused)]
-    //     #[derive(TypeInfo)]
-    //     struct Foo<T, U> {
-    //         a: T,
-    //         a: Option<(T, U)>,
-    //     }
-    //
-    //     #[allow(unused)]
-    //     #[derive(TypeInfo)]
-    //     struct Bar<T> {
-    //         b: Foo<T, u32>,
-    //     }
-    //
-    //     let mut registry = Registry::new();
-    //     registry.register_type(&meta_type::<Bar<bool>>());
-    //
-    //     let generator = TypeGenerator::new(registry.into());
-    //     let types = generator.generate("root");
-    //
-    //     assert_eq!(
-    //         types.to_string(),
-    //         quote! {
-    //             mod root {
-    //                 pub struct Foo<T> {
-    //                     a: T,
-    //                 }
-    //
-    //                 pub struct Bar {
-    //                     b: Foo<u32>,
-    //                 }
-    //             }
-    //         }.to_string()
-    //     )
-    // }
+    #[test]
+    fn generics_nested() {
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct Foo<T, U> {
+            a: T,
+            b: Option<(T, U)>,
+        }
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct Bar<T> {
+            b: Foo<T, u32>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<Bar<bool>>());
+
+        let generator = TypeGenerator::new(registry.into());
+        let types = generator.generate("root");
+
+        assert_eq!(
+            types.to_string(),
+            quote! {
+                mod root {
+                    pub struct Bar<_0> {
+                        pub b: Foo<_0, u32>,
+                    }
+
+                    pub struct Foo<_0, _1> {
+                        pub a: _0,
+                        pub b: Option<(_0, _1)>,
+                    }
+                }
+            }.to_string()
+        )
+    }
 }
