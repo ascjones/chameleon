@@ -20,7 +20,7 @@ use quote::{
 };
 use scale_info::{
     form::{
-        CompactForm,
+        PortableForm,
         FormString,
     },
     prelude::{
@@ -28,21 +28,21 @@ use scale_info::{
         string::ToString,
     },
     Field,
-    RegistryReadOnly,
+    PortableRegistry,
     TypeDef,
     TypeDefPrimitive,
 };
 
-pub struct TypeGenerator<S: FormString> {
-    types: RegistryReadOnly<S>,
+pub struct TypeGenerator<'a, S: FormString> {
+    types: &'a PortableRegistry<S>,
 }
 
-impl<S> TypeGenerator<S>
+impl<'a, S> TypeGenerator<'a, S>
 where
     S: FormString + From<&'static str> + ToString + IdentFragment,
 {
     /// Construct a new [`TypeGenerator`] with the given type registry.
-    pub fn new(types: RegistryReadOnly<S>) -> Self {
+    pub fn new(types: &'a PortableRegistry<S>) -> Self {
         TypeGenerator { types }
     }
 
@@ -121,7 +121,7 @@ where
 
     fn composite_fields(
         &self,
-        fields: &[Field<CompactForm<S>>],
+        fields: &[Field<PortableForm<S>>],
         type_params: &[TypeParameter],
         is_struct: bool,
     ) -> TokenStream2 {
@@ -271,8 +271,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(
@@ -307,8 +308,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<Parent>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(
@@ -341,8 +343,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<Parent>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(
@@ -369,8 +372,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<E>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(
@@ -398,8 +402,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(
@@ -426,8 +431,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(
@@ -460,8 +466,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<Bar>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(
@@ -496,8 +503,9 @@ mod tests {
 
         let mut registry = Registry::new();
         registry.register_type(&meta_type::<Bar<bool>>());
+        let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(registry.into());
+        let generator = TypeGenerator::new(&portable_types);
         let types = generator.generate("root");
 
         assert_eq!(

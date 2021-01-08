@@ -4,8 +4,10 @@ use crate::{
 };
 use frame_metadata::{
     RuntimeMetadata,
-    RuntimeMetadataLastVersion,
-    RuntimeMetadataPrefixed,
+    v13::{
+        RuntimeMetadataV13,
+        RuntimeMetadataPrefixed,
+    },
 };
 use quote::{
     format_ident,
@@ -13,16 +15,12 @@ use quote::{
     IdentFragment,
 };
 use scale_info::{
-    form::{
-        CompactForm,
-        FormString,
-    },
+    form::FormString,
     prelude::string::ToString,
 };
 
 pub struct RuntimeGenerator<S: FormString> {
-    metadata: RuntimeMetadataLastVersion<CompactForm<S>>,
-    type_generator: TypeGenerator<S>,
+    metadata: RuntimeMetadataV13<S>,
 }
 
 impl<S> RuntimeGenerator<S>
@@ -30,19 +28,20 @@ where
     S: FormString + From<&'static str> + ToString + IdentFragment,
 {
     pub fn new(metadata: RuntimeMetadataPrefixed<S>) -> Self {
-        match metadata.metadata {
-            RuntimeMetadata::V12(v12) => {
+        match metadata.1 {
+            RuntimeMetadata::V13(v13) => {
                 Self {
-                    metadata: v12,
-                    type_generator: TypeGenerator::new(metadata.types),
+                    metadata: v13,
                 }
-            }
+            },
+            _ => panic!("Unsupported metadata version {:?}", metadata.1)
         }
     }
 
     pub fn generate_runtime(&self, mod_name: &str) -> TokenStream2 {
         let types_mod = "types";
-        let types = self.type_generator.generate(types_mod);
+        let type_generator = TypeGenerator::new(&self.metadata.types);
+        let types = type_generator.generate(types_mod);
         let modules = self.metadata.modules.iter().map(|module| {
             use heck::SnakeCase as _;
             let mod_name = format_ident!("{}", module.name.to_string().to_snake_case());
@@ -57,7 +56,7 @@ where
                     let name = format_ident!("{}", call.name.to_string().to_camel_case());
                     let args = call.arguments.iter().map(|arg| {
                         let name = format_ident!("{}", arg.name);
-                        let ty = self.type_generator.resolve_type(arg.ty.id(), &[]);
+                        let ty = type_generator.resolve_type(arg.ty.id(), &[]);
                         // todo: add docs and #[compact] attr
                         quote! { #name: #ty }
                     });
@@ -76,7 +75,7 @@ where
                 .map(|event| {
                     let name = format_ident!("{}", event.name);
                     let args = event.arguments.iter().map(|arg| {
-                        self.type_generator.resolve_type(arg.ty.id(), &[])
+                        type_generator.resolve_type(arg.ty.id(), &[])
                         // todo: add docs and #[compact] attr
                     });
                     quote! {
