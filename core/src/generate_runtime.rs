@@ -3,38 +3,25 @@ use crate::{
     TypeGenerator,
 };
 use frame_metadata::{
+    v13::RuntimeMetadataV13,
     RuntimeMetadata,
-    v13::{
-        RuntimeMetadataV13,
-        RuntimeMetadataPrefixed,
-    },
+    RuntimeMetadataPrefixed,
 };
 use quote::{
     format_ident,
     quote,
-    IdentFragment,
 };
-use scale_info::{
-    form::FormString,
-    prelude::string::ToString,
-};
+use scale_info::prelude::string::ToString;
 
-pub struct RuntimeGenerator<S: FormString> {
-    metadata: RuntimeMetadataV13<S>,
+pub struct RuntimeGenerator {
+    metadata: RuntimeMetadataV13,
 }
 
-impl<S> RuntimeGenerator<S>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
-    pub fn new(metadata: RuntimeMetadataPrefixed<S>) -> Self {
+impl RuntimeGenerator {
+    pub fn new(metadata: RuntimeMetadataPrefixed) -> Self {
         match metadata.1 {
-            RuntimeMetadata::V13(v13) => {
-                Self {
-                    metadata: v13,
-                }
-            },
-            _ => panic!("Unsupported metadata version {:?}", metadata.1)
+            RuntimeMetadata::V13(v13) => Self { metadata: v13 },
+            _ => panic!("Unsupported metadata version {:?}", metadata.1),
         }
     }
 

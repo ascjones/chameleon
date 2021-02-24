@@ -16,33 +16,23 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::{
     format_ident,
     quote,
-    IdentFragment,
 };
 use scale_info::{
-    form::{
-        PortableForm,
-        FormString,
-    },
-    prelude::{
-        num::NonZeroU32,
-        string::ToString,
-    },
+    form::PortableForm,
+    prelude::num::NonZeroU32,
     Field,
     PortableRegistry,
     TypeDef,
     TypeDefPrimitive,
 };
 
-pub struct TypeGenerator<'a, S: FormString> {
-    types: &'a PortableRegistry<S>,
+pub struct TypeGenerator<'a> {
+    types: &'a PortableRegistry,
 }
 
-impl<'a, S> TypeGenerator<'a, S>
-where
-    S: FormString + From<&'static str> + ToString + IdentFragment,
-{
+impl<'a> TypeGenerator<'a> {
     /// Construct a new [`TypeGenerator`] with the given type registry.
-    pub fn new(types: &'a PortableRegistry<S>) -> Self {
+    pub fn new(types: &'a PortableRegistry) -> Self {
         TypeGenerator { types }
     }
 
@@ -59,7 +49,10 @@ where
                 .enumerate()
                 .map(|(i, tp)| {
                     let tp_name = format_ident!("_{}", i);
-                    TypeParameter { concrete_type_id: tp.id(), name: tp_name }
+                    TypeParameter {
+                        concrete_type_id: tp.id(),
+                        name: tp_name,
+                    }
                 })
                 .collect::<Vec<_>>();
 
@@ -78,7 +71,8 @@ where
             match ty.type_def() {
                 TypeDef::Composite(composite) => {
                     let type_name = type_name.expect("structs should have a name");
-                    let fields = self.composite_fields(composite.fields(), &type_params, true);
+                    let fields =
+                        self.composite_fields(composite.fields(), &type_params, true);
                     let ty_toks = quote! {
                         pub struct #type_name #fields
                     };
@@ -121,7 +115,7 @@ where
 
     fn composite_fields(
         &self,
-        fields: &[Field<PortableForm<S>>],
+        fields: &[Field<PortableForm>],
         type_params: &[TypeParameter],
         is_struct: bool,
     ) -> TokenStream2 {
@@ -169,8 +163,15 @@ where
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type(&self, id: NonZeroU32, parent_type_params: &[TypeParameter]) -> syn::Type {
-        if let Some(parent_type_param) = parent_type_params.iter().find(|tp| tp.concrete_type_id == id) {
+    pub fn resolve_type(
+        &self,
+        id: NonZeroU32,
+        parent_type_params: &[TypeParameter],
+    ) -> syn::Type {
+        if let Some(parent_type_param) = parent_type_params
+            .iter()
+            .find(|tp| tp.concrete_type_id == id)
+        {
             let ty = &parent_type_param.name;
             return syn::Type::Path(syn::parse_quote! { #ty })
         }
@@ -201,12 +202,14 @@ where
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(sequence) => {
-                let type_param = self.resolve_type(sequence.type_param().id(), parent_type_params);
+                let type_param =
+                    self.resolve_type(sequence.type_param().id(), parent_type_params);
                 let type_path = syn::parse_quote! { Vec<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type = self.resolve_type(array.type_param().id(), parent_type_params);
+                let array_type =
+                    self.resolve_type(array.type_param().id(), parent_type_params);
                 let array_len = array.len() as usize;
                 let array = syn::parse_quote! { [#array_type; #array_len] };
                 syn::Type::Array(array)
@@ -240,6 +243,18 @@ where
                 let ident = format_ident!("{}", primitive);
                 let path = syn::parse_quote! { #ident };
                 syn::Type::Path(path)
+            }
+            TypeDef::Phantom(phantom) => {
+                let type_param =
+                    self.resolve_type(phantom.type_param().id(), parent_type_params);
+                let type_path =
+                    syn::parse_quote! { core::marker::PhantomData<#type_param> };
+                syn::Type::Path(type_path)
+            }
+            TypeDef::Compact(compact) => {
+                // todo: change the return type of this method to include info that it is compact
+                // and should be annotated with #[compact] for fields
+                self.resolve_type(compact.type_param().id(), parent_type_params)
             }
         }
     }
@@ -482,7 +497,8 @@ mod tests {
                         pub a: _0,
                     }
                 }
-            }.to_string()
+            }
+            .to_string()
         )
     }
 
@@ -521,7 +537,8 @@ mod tests {
                         pub b: Option<(_0, _1)>,
                     }
                 }
-            }.to_string()
+            }
+            .to_string()
         )
     }
 }

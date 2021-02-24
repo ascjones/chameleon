@@ -31,8 +31,7 @@ where
     let mut bytes = Vec::new();
     file.read_to_end(&mut bytes)?;
 
-    let metadata =
-        frame_metadata::v13::RuntimeMetadataPrefixed::<String>::decode(&mut &bytes[..])?;
+    let metadata = frame_metadata::RuntimeMetadataPrefixed::decode(&mut &bytes[..])?;
 
     let generator = generate_runtime::RuntimeGenerator::new(metadata);
     Ok(generator.generate_runtime(mod_name))
