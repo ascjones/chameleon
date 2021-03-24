@@ -202,7 +202,7 @@ impl<'a> TypeGenerator<'a> {
                     .fields()
                     .iter()
                     .map(|type_id| self.resolve_type(type_id.id(), parent_type_params));
-                let tuple = syn::parse_quote! { (#( # tuple_types ),* ) };
+                let tuple = syn::parse_quote! { (#( # tuple_types, )* ) };
                 syn::Type::Tuple(tuple)
             }
             TypeDef::Primitive(primitive) => {
