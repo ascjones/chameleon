@@ -1,16 +1,6 @@
-use crate::{
-    TokenStream2,
-    TypeGenerator,
-};
-use frame_metadata::{
-    v13::RuntimeMetadataV13,
-    RuntimeMetadata,
-    RuntimeMetadataPrefixed,
-};
-use quote::{
-    format_ident,
-    quote,
-};
+use crate::{TokenStream2, TypeGenerator};
+use frame_metadata::{v13::RuntimeMetadataV13, RuntimeMetadata, RuntimeMetadataPrefixed};
+use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
 
 pub struct RuntimeGenerator {

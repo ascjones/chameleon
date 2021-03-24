@@ -13,16 +13,9 @@
 // limitations under the License.
 
 use proc_macro2::TokenStream as TokenStream2;
-use quote::{
-    format_ident,
-    quote,
-};
+use quote::{format_ident, quote};
 use scale_info::{
-    form::PortableForm,
-    prelude::num::NonZeroU32,
-    Field,
-    PortableRegistry,
-    TypeDef,
+    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, TypeDef,
     TypeDefPrimitive,
 };
 
@@ -41,7 +34,7 @@ impl<'a> TypeGenerator<'a> {
         for (_, ty) in self.types.enumerate() {
             if ty.path().namespace().is_empty() {
                 // prelude types e.g. Option/Result have no namespace, so we don't generate them
-                continue
+                continue;
             }
             let type_params = ty
                 .type_params()
@@ -71,8 +64,7 @@ impl<'a> TypeGenerator<'a> {
             match ty.type_def() {
                 TypeDef::Composite(composite) => {
                     let type_name = type_name.expect("structs should have a name");
-                    let fields =
-                        self.composite_fields(composite.fields(), &type_params, true);
+                    let fields = self.composite_fields(composite.fields(), &type_params, true);
                     let ty_toks = quote! {
                         pub struct #type_name #fields
                     };
@@ -123,10 +115,7 @@ impl<'a> TypeGenerator<'a> {
         let unnamed = fields.iter().all(|f| f.name().is_none());
         if named {
             let fields = fields.iter().map(|field| {
-                let name = format_ident!(
-                    "{}",
-                    field.name().expect("named field without a name")
-                );
+                let name = format_ident!("{}", field.name().expect("named field without a name"));
                 let ty = self.resolve_type(field.ty().id(), type_params);
                 if is_struct {
                     quote! { pub #name: #ty }
@@ -163,17 +152,13 @@ impl<'a> TypeGenerator<'a> {
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type(
-        &self,
-        id: NonZeroU32,
-        parent_type_params: &[TypeParameter],
-    ) -> syn::Type {
+    pub fn resolve_type(&self, id: NonZeroU32, parent_type_params: &[TypeParameter]) -> syn::Type {
         if let Some(parent_type_param) = parent_type_params
             .iter()
             .find(|tp| tp.concrete_type_id == id)
         {
             let ty = &parent_type_param.name;
-            return syn::Type::Path(syn::parse_quote! { #ty })
+            return syn::Type::Path(syn::parse_quote! { #ty });
         }
 
         let ty = self
@@ -202,14 +187,12 @@ impl<'a> TypeGenerator<'a> {
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(sequence) => {
-                let type_param =
-                    self.resolve_type(sequence.type_param().id(), parent_type_params);
+                let type_param = self.resolve_type(sequence.type_param().id(), parent_type_params);
                 let type_path = syn::parse_quote! { Vec<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type =
-                    self.resolve_type(array.type_param().id(), parent_type_params);
+                let array_type = self.resolve_type(array.type_param().id(), parent_type_params);
                 let array_len = array.len() as usize;
                 let array = syn::parse_quote! { [#array_type; #array_len] };
                 syn::Type::Array(array)
@@ -245,10 +228,8 @@ impl<'a> TypeGenerator<'a> {
                 syn::Type::Path(path)
             }
             TypeDef::Phantom(phantom) => {
-                let type_param =
-                    self.resolve_type(phantom.type_param().id(), parent_type_params);
-                let type_path =
-                    syn::parse_quote! { core::marker::PhantomData<#type_param> };
+                let type_param = self.resolve_type(phantom.type_param().id(), parent_type_params);
+                let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Compact(compact) => {
@@ -268,11 +249,7 @@ pub struct TypeParameter {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use scale_info::{
-        meta_type,
-        Registry,
-        TypeInfo,
-    };
+    use scale_info::{meta_type, Registry, TypeInfo};
 
     #[test]
     fn generate_struct_with_primitives() {

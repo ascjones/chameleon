@@ -3,10 +3,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use scale::Decode;
 use std::{
     fs,
-    io::{
-        self,
-        Read,
-    },
+    io::{self, Read},
     path,
 };
 
@@ -39,10 +36,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        env,
-        path,
-    };
+    use std::{env, path};
 
     #[test]
     fn generate_runtime_types() {
