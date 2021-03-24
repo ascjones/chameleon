@@ -13,6 +13,8 @@ Accepts a SCALE encoded metadata file via a CLI or a macro, and generates a Rust
 
 Using the command: `cargo run -p chameleon-cli | rustfmt --edition=2018 --emit=stdout`, generates the following:
 
+<details>
+
 ```
 pub mod node_runtime {
     mod types {
@@ -232,4 +234,6 @@ pub mod node_runtime {
 }
 
 ```
+
+</details>
 

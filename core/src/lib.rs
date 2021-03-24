@@ -53,7 +53,7 @@ mod tests {
         // curl -sX POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"state_getMetadata", "id": 1}' localhost:9933 \
         // | jq .result \
         // | cut -d '"' -f 2 \
-        // | xxd -r -p > ./node-runtime.scale
+        // | xxd -r -p > ./core/node-runtime.scale
         //
         //
         let path = root_path.join("node-runtime.scale");
