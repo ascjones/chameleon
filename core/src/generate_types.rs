@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use proc_macro2::TokenStream as TokenStream2;
+use proc_macro2::{TokenStream as TokenStream2, TokenStream};
 use quote::{format_ident, quote};
 use scale_info::{
-    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, TypeDef,
+    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef,
     TypeDefPrimitive,
 };
 
@@ -238,6 +238,18 @@ impl<'a> TypeGenerator<'a> {
                 self.resolve_type(compact.type_param().id(), parent_type_params)
             }
         }
+    }
+}
+
+pub struct Module<'a> {
+    name: String,
+    children: Vec<&'a Module<'a>>,
+    types: Vec<Type<PortableForm>>
+}
+
+impl<'a> quote::ToTokens for Module<'a> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        unimplemented!()
     }
 }
 
@@ -516,6 +528,71 @@ mod tests {
                 }
             }
             .to_string()
+        )
+    }
+
+    #[test]
+    fn modules() {
+        mod root {
+            pub mod a {
+                #[allow(unused)]
+                #[derive(scale_info::TypeInfo)]
+                pub struct Foo {}
+
+                pub mod b {
+                    #[allow(unused)]
+                    #[derive(scale_info::TypeInfo)]
+                    pub struct Bar {
+                        a: super::Foo
+                    }
+                }
+            }
+
+            pub mod c {
+                #[allow(unused)]
+                #[derive(scale_info::TypeInfo)]
+                pub struct Foo {
+                    a: super::a::b::Bar,
+                }
+            }
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<root::c::Foo>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let generator = TypeGenerator::new(&portable_types);
+        let types = generator.generate("root");
+
+        assert_eq!(
+            types.to_string(),
+            quote! {
+                mod root {
+                    use super::root as root;
+
+                    mod A {
+                        use super::root as root;
+
+                        pub struct Foo {}
+
+                        mod B {
+                            use super::root as root;
+
+                            pub struct Bar {
+                                a: super::Foo
+                            }
+                        }
+                    }
+
+                    mod C {
+                        use super::root as root;
+
+                        pub struct Foo {
+                            a: super::A::B::Bar,
+                        }
+                    }
+                }
+            }.to_string()
         )
     }
 }
