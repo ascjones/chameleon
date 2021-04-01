@@ -119,6 +119,18 @@ impl<'a> Module<'a> {
             .expect(&format!("No type with id {} found", id));
         ty.resolve_type_path(id, &[])
     }
+
+    /// Returns the module with the given path, if any
+    pub fn get_mod(&'a self, path_segs: &[&'static str]) -> Option<&'a Module<'a>> {
+        let (mod_name, rest) = path_segs.split_first()?;
+        let mod_ident = Ident::new(mod_name, Span::call_site());
+        let module = self.children.get(&mod_ident)?;
+        if rest.is_empty() {
+            Some(module)
+        } else {
+            module.get_mod(rest)
+        }
+    }
 }
 
 #[derive(Debug)]
@@ -343,6 +355,8 @@ mod tests {
     use super::*;
     use scale_info::{meta_type, Registry, TypeInfo};
 
+    const MOD_PATH: &'static [&'static str] = &["chameleon_core", "generate_types", "tests"];
+
     #[test]
     fn generate_struct_with_primitives() {
         #[allow(unused)]
@@ -358,11 +372,13 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
                     pub struct S {
                         pub a: bool,
                         pub b: u32,
@@ -394,11 +410,14 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
+
                     pub struct Parent {
                         pub a: bool,
                         pub b: Child,
@@ -428,11 +447,14 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
+
                     pub struct Parent(pub bool, pub Child,);
                     pub struct Child(pub i32,);
                 }
@@ -456,11 +478,13 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
                     pub enum E {
                         A,
                         B (bool,),
@@ -485,11 +509,13 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
                     pub struct S {
                         pub a: [u8; 32usize],
                     }
@@ -513,11 +539,13 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
                     pub struct S {
                         pub a: Option<bool>,
                         pub b: Option<u32>,
@@ -547,11 +575,13 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
                     pub struct Bar {
                         pub b: Foo<u32>,
                     }
@@ -584,11 +614,13 @@ mod tests {
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
+                    use super::root;
                     pub struct Bar<_0> {
                         pub b: Foo<_0, u32>,
                     }
@@ -605,7 +637,7 @@ mod tests {
 
     #[test]
     fn modules() {
-        mod root {
+        mod modules {
             pub mod a {
                 #[allow(unused)]
                 #[derive(scale_info::TypeInfo)]
@@ -630,36 +662,39 @@ mod tests {
         }
 
         let mut registry = Registry::new();
-        registry.register_type(&meta_type::<root::c::Foo>());
+        registry.register_type(&meta_type::<modules::c::Foo>());
         let portable_types: PortableRegistry = registry.into();
 
         let types = generate_types_mod(&portable_types, "root");
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
 
         assert_eq!(
-            types.into_token_stream().to_string(),
+            tests_mod.into_token_stream().to_string(),
             quote! {
-                mod root {
+                pub mod tests {
                     use super::root;
-
-                    mod a {
+                    pub mod modules {
                         use super::root;
-
-                        pub struct Foo {}
-
-                        pub mod b {
+                        pub mod a {
                             use super::root;
 
-                            pub struct Bar {
-                                a: root::a::Foo,
+                            pub mod b {
+                                use super::root;
+
+                                pub struct Bar {
+                                    a: root::a::Foo,
+                                }
                             }
+
+                            pub struct Foo {}
                         }
-                    }
 
-                    mod c {
-                        use super::root;
+                        pub mod c {
+                            use super::root;
 
-                        pub struct Foo {
-                            a: root::a::b::Bar,
+                            pub struct Foo {
+                                a: root::a::b::Bar,
+                            }
                         }
                     }
                 }
