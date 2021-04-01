@@ -9,7 +9,7 @@ use std::{
 mod generate_runtime;
 mod generate_types;
 
-pub use generate_types::generate_types_mod;
+pub use generate_types::{TypeGenerator, resolve_type_path};
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
