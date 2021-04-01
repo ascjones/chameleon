@@ -12,13 +12,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use proc_macro2::{TokenStream as TokenStream2, TokenStream, Ident, Span};
+use proc_macro2::{Ident, Span, TokenStream as TokenStream2, TokenStream};
 use quote::{format_ident, quote, ToTokens};
-use scale_info::{form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef, TypeDefPrimitive};
+use scale_info::{
+    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef,
+    TypeDefPrimitive,
+};
 use std::collections::BTreeMap;
 
 /// Generate a module containing all types defined in the supplied type registry.
-pub fn generate_types_mod<'a>(type_registry: &'a PortableRegistry, root_mod: &'static str) -> Module<'a> {
+pub fn generate_types_mod<'a>(
+    type_registry: &'a PortableRegistry,
+    root_mod: &'static str,
+) -> Module<'a> {
     let root_mod_ident = Ident::new(root_mod, Span::call_site());
     let mut root_mod = Module::new(root_mod_ident.clone(), root_mod_ident.clone());
 
@@ -27,22 +33,46 @@ pub fn generate_types_mod<'a>(type_registry: &'a PortableRegistry, root_mod: &'s
             // prelude types e.g. Option/Result have no namespace, so we don't generate them
             continue;
         }
-        insert_type(type_registry, ty.clone(), id,ty.path().namespace().to_vec(), &root_mod_ident, &mut root_mod)
+        insert_type(
+            type_registry,
+            ty.clone(),
+            id,
+            ty.path().namespace().to_vec(),
+            &root_mod_ident,
+            &mut root_mod,
+        )
     }
 
     root_mod
 }
 
-fn insert_type<'a>(type_registry: &'a PortableRegistry, ty: Type<PortableForm>, id: NonZeroU32, path: Vec<String>, root_mod_ident: &Ident, module: &mut Module<'a>) {
+fn insert_type<'a>(
+    type_registry: &'a PortableRegistry,
+    ty: Type<PortableForm>,
+    id: NonZeroU32,
+    path: Vec<String>,
+    root_mod_ident: &Ident,
+    module: &mut Module<'a>,
+) {
     let segment = path.first().expect("path has at least one segment");
     let mod_ident = Ident::new(segment, Span::call_site());
 
-    let child_mod = module.children.entry(mod_ident.clone()).or_insert(Module::new(mod_ident, root_mod_ident.clone()));
+    let child_mod = module
+        .children
+        .entry(mod_ident.clone())
+        .or_insert(Module::new(mod_ident, root_mod_ident.clone()));
 
     if path.len() == 1 {
-        child_mod.types.insert(id,ModuleType { ty, type_registry });
+        child_mod.types.insert(id, ModuleType { ty, type_registry });
     } else {
-        insert_type(type_registry, ty, id, path[1..].to_vec(), root_mod_ident, child_mod)
+        insert_type(
+            type_registry,
+            ty,
+            id,
+            path[1..].to_vec(),
+            root_mod_ident,
+            child_mod,
+        )
     }
 }
 
@@ -51,7 +81,7 @@ pub struct Module<'a> {
     name: Ident,
     root_mod: Ident,
     children: BTreeMap<Ident, Module<'a>>,
-    types: BTreeMap<NonZeroU32, ModuleType<'a>>
+    types: BTreeMap<NonZeroU32, ModuleType<'a>>,
 }
 
 impl<'a> ToTokens for Module<'a> {
@@ -83,7 +113,10 @@ impl<'a> Module<'a> {
 
     /// Resolve the path to the type with the given id
     pub fn resolve_type_path(&self, id: NonZeroU32) -> syn::Type {
-        let ty = self.types.get(&id).expect(&format!("No type with id {} found", id));
+        let ty = self
+            .types
+            .get(&id)
+            .expect(&format!("No type with id {} found", id));
         ty.resolve_type_path(id, &[])
     }
 }
@@ -96,7 +129,8 @@ pub struct ModuleType<'a> {
 
 impl<'a> quote::ToTokens for ModuleType<'a> {
     fn to_tokens(&self, tokens: &mut TokenStream) {
-        let type_params = self.ty
+        let type_params = self
+            .ty
             .type_params()
             .iter()
             .enumerate()
@@ -126,8 +160,8 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
                 let type_name = type_name.expect("structs should have a name");
                 let fields = self.composite_fields(composite.fields(), &type_params, true);
                 let ty_toks = quote! {
-                        pub struct #type_name #fields
-                    };
+                    pub struct #type_name #fields
+                };
                 tokens.extend(ty_toks);
             }
             TypeDef::Variant(variant) => {
@@ -140,14 +174,14 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
                         self.composite_fields(v.fields(), &type_params, false)
                     };
                     quote! {
-                            #variant_name #fields
-                        }
+                        #variant_name #fields
+                    }
                 });
                 let ty_toks = quote! {
-                        pub enum #type_name {
-                            #( #variants, )*
-                        }
-                    };
+                    pub enum #type_name {
+                        #( #variants, )*
+                    }
+                };
                 tokens.extend(ty_toks);
             }
             _ => (), // all built-in types should already be in scope
@@ -203,7 +237,11 @@ impl<'a> ModuleType<'a> {
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type_path(&self, id: NonZeroU32, parent_type_params: &[TypeParameter]) -> syn::Type {
+    pub fn resolve_type_path(
+        &self,
+        id: NonZeroU32,
+        parent_type_params: &[TypeParameter],
+    ) -> syn::Type {
         if let Some(parent_type_param) = parent_type_params
             .iter()
             .find(|tp| tp.concrete_type_id == id)
@@ -238,12 +276,14 @@ impl<'a> ModuleType<'a> {
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(sequence) => {
-                let type_param = self.resolve_type_path(sequence.type_param().id(), parent_type_params);
+                let type_param =
+                    self.resolve_type_path(sequence.type_param().id(), parent_type_params);
                 let type_path = syn::parse_quote! { Vec<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type = self.resolve_type_path(array.type_param().id(), parent_type_params);
+                let array_type =
+                    self.resolve_type_path(array.type_param().id(), parent_type_params);
                 let array_len = array.len() as usize;
                 let array = syn::parse_quote! { [#array_type; #array_len] };
                 syn::Type::Array(array)
@@ -279,7 +319,8 @@ impl<'a> ModuleType<'a> {
                 syn::Type::Path(path)
             }
             TypeDef::Phantom(phantom) => {
-                let type_param = self.resolve_type_path(phantom.type_param().id(), parent_type_params);
+                let type_param =
+                    self.resolve_type_path(phantom.type_param().id(), parent_type_params);
                 let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
                 syn::Type::Path(type_path)
             }
@@ -574,7 +615,7 @@ mod tests {
                     #[allow(unused)]
                     #[derive(scale_info::TypeInfo)]
                     pub struct Bar {
-                        a: super::Foo
+                        a: super::Foo,
                     }
                 }
             }
@@ -622,7 +663,8 @@ mod tests {
                         }
                     }
                 }
-            }.to_string()
+            }
+            .to_string()
         )
     }
 }

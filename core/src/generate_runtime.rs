@@ -1,4 +1,4 @@
-use crate::{TokenStream2, generate_types_mod};
+use crate::{generate_types_mod, TokenStream2};
 use frame_metadata::{v13::RuntimeMetadataV13, RuntimeMetadata, RuntimeMetadataPrefixed};
 use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
