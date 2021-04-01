@@ -1,4 +1,3 @@
-use generate_types::TypeGenerator;
 use proc_macro2::TokenStream as TokenStream2;
 use scale::Decode;
 use std::{
@@ -9,6 +8,8 @@ use std::{
 
 mod generate_runtime;
 mod generate_types;
+
+pub use generate_types::generate_types_mod;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {

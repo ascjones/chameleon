@@ -1,4 +1,4 @@
-use crate::{TokenStream2, TypeGenerator};
+use crate::{TokenStream2, generate_types_mod};
 use frame_metadata::{v13::RuntimeMetadataV13, RuntimeMetadata, RuntimeMetadataPrefixed};
 use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
@@ -16,9 +16,7 @@ impl RuntimeGenerator {
     }
 
     pub fn generate_runtime(&self, mod_name: &str) -> TokenStream2 {
-        let types_mod = "types";
-        let type_generator = TypeGenerator::new(&self.metadata.types);
-        let types = type_generator.generate(types_mod);
+        let types_mod = generate_types_mod(&self.metadata.types, "types");
         let modules = self.metadata.modules.iter().map(|module| {
             use heck::SnakeCase as _;
             let mod_name = format_ident!("{}", module.name.to_string().to_snake_case());
@@ -33,7 +31,7 @@ impl RuntimeGenerator {
                     let name = format_ident!("{}", call.name.to_string().to_camel_case());
                     let args = call.arguments.iter().map(|arg| {
                         let name = format_ident!("{}", arg.name);
-                        let ty = type_generator.resolve_type(arg.ty.id(), &[]);
+                        let ty = types_mod.resolve_type_path(arg.ty.id());
                         // todo: add docs and #[compact] attr
                         quote! { #name: #ty }
                     });
@@ -52,7 +50,7 @@ impl RuntimeGenerator {
                 .map(|event| {
                     let name = format_ident!("{}", event.name);
                     let args = event.arguments.iter().map(|arg| {
-                        type_generator.resolve_type(arg.ty.id(), &[])
+                        types_mod.resolve_type_path(arg.ty.id())
                         // todo: add docs and #[compact] attr
                     });
                     quote! {
@@ -66,7 +64,7 @@ impl RuntimeGenerator {
                 quote! {
                     mod calls {
                         // todo: use types mod name defined earlier
-                        use super::*;
+                        use super::types;
                         #( #calls )*
                     }
                 }
@@ -76,7 +74,7 @@ impl RuntimeGenerator {
             let events = if !events.is_empty() {
                 quote! {
                     pub mod events {
-                        use super::*;
+                        use super::types;
                         #( #events )*
                     }
                 }
@@ -86,7 +84,7 @@ impl RuntimeGenerator {
 
             quote! {
                 pub mod #mod_name {
-                    use super::types::*;
+                    use super::types;
                     #calls
                     #events
                 }
@@ -97,7 +95,7 @@ impl RuntimeGenerator {
         quote! {
             #[allow(dead_code, unused_imports)]
             pub mod #mod_name {
-                #types
+                #types_mod
 
                 #( #modules )*
             }

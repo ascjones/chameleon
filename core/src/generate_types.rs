@@ -12,99 +12,150 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use proc_macro2::{TokenStream as TokenStream2, TokenStream};
-use quote::{format_ident, quote};
-use scale_info::{
-    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef,
-    TypeDefPrimitive,
-};
+use proc_macro2::{TokenStream as TokenStream2, TokenStream, Ident, Span};
+use quote::{format_ident, quote, ToTokens};
+use scale_info::{form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef, TypeDefPrimitive};
+use std::collections::BTreeMap;
 
-pub struct TypeGenerator<'a> {
-    types: &'a PortableRegistry,
-}
+/// Generate a module containing all types defined in the supplied type registry.
+pub fn generate_types_mod<'a>(type_registry: &'a PortableRegistry, root_mod: &'static str) -> Module<'a> {
+    let root_mod_ident = Ident::new(root_mod, Span::call_site());
+    let mut root_mod = Module::new(root_mod_ident.clone(), root_mod_ident.clone());
 
-impl<'a> TypeGenerator<'a> {
-    /// Construct a new [`TypeGenerator`] with the given type registry.
-    pub fn new(types: &'a PortableRegistry) -> Self {
-        TypeGenerator { types }
+    for (id, ty) in type_registry.enumerate() {
+        if ty.path().namespace().is_empty() {
+            // prelude types e.g. Option/Result have no namespace, so we don't generate them
+            continue;
+        }
+        insert_type(type_registry, ty.clone(), id,ty.path().namespace().to_vec(), &root_mod_ident, &mut root_mod)
     }
 
-    pub fn generate(&self, root_mod: &str) -> TokenStream2 {
-        let mut tokens = TokenStream2::new();
-        for (_, ty) in self.types.enumerate() {
-            if ty.path().namespace().is_empty() {
-                // prelude types e.g. Option/Result have no namespace, so we don't generate them
-                continue;
+    root_mod
+}
+
+fn insert_type<'a>(type_registry: &'a PortableRegistry, ty: Type<PortableForm>, id: NonZeroU32, path: Vec<String>, root_mod_ident: &Ident, module: &mut Module<'a>) {
+    let segment = path.first().expect("path has at least one segment");
+    let mod_ident = Ident::new(segment, Span::call_site());
+
+    let child_mod = module.children.entry(mod_ident.clone()).or_insert(Module::new(mod_ident, root_mod_ident.clone()));
+
+    if path.len() == 1 {
+        child_mod.types.insert(id,ModuleType { ty, type_registry });
+    } else {
+        insert_type(type_registry, ty, id, path[1..].to_vec(), root_mod_ident, child_mod)
+    }
+}
+
+#[derive(Debug)]
+pub struct Module<'a> {
+    name: Ident,
+    root_mod: Ident,
+    children: BTreeMap<Ident, Module<'a>>,
+    types: BTreeMap<NonZeroU32, ModuleType<'a>>
+}
+
+impl<'a> ToTokens for Module<'a> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let name = &self.name;
+        let root_mod = &self.root_mod;
+        let modules = self.children.values();
+        let types = self.types.values().clone();
+
+        tokens.extend(quote! {
+            pub mod #name {
+                use super::#root_mod;
+                #( #modules )*
+                #( #types )*
             }
-            let type_params = ty
-                .type_params()
-                .iter()
-                .enumerate()
-                .map(|(i, tp)| {
-                    let tp_name = format_ident!("_{}", i);
-                    TypeParameter {
-                        concrete_type_id: tp.id(),
-                        name: tp_name,
-                    }
-                })
-                .collect::<Vec<_>>();
+        })
+    }
+}
 
-            let type_name = ty.path().ident().map(|ident| {
-                let type_params = if !type_params.is_empty() {
-                    let tps = type_params.iter().map(|tp| tp.name.clone());
-                    quote! { < #( #tps ),* > }
-                } else {
-                    quote! {}
-                };
-                let ty = format_ident!("{}", ident);
-                let path = syn::parse_quote! { #ty #type_params};
-                syn::Type::Path(path)
-            });
+impl<'a> Module<'a> {
+    pub fn new(name: Ident, root_mod: Ident) -> Self {
+        Self {
+            name,
+            root_mod,
+            children: BTreeMap::new(),
+            types: BTreeMap::new(),
+        }
+    }
 
-            match ty.type_def() {
-                TypeDef::Composite(composite) => {
-                    let type_name = type_name.expect("structs should have a name");
-                    let fields = self.composite_fields(composite.fields(), &type_params, true);
-                    let ty_toks = quote! {
+    /// Resolve the path to the type with the given id
+    pub fn resolve_type_path(&self, id: NonZeroU32) -> syn::Type {
+        let ty = self.types.get(&id).expect(&format!("No type with id {} found", id));
+        ty.resolve_type_path(id, &[])
+    }
+}
+
+#[derive(Debug)]
+pub struct ModuleType<'a> {
+    type_registry: &'a PortableRegistry,
+    ty: Type<PortableForm>,
+}
+
+impl<'a> quote::ToTokens for ModuleType<'a> {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let type_params = self.ty
+            .type_params()
+            .iter()
+            .enumerate()
+            .map(|(i, tp)| {
+                let tp_name = format_ident!("_{}", i);
+                TypeParameter {
+                    concrete_type_id: tp.id(),
+                    name: tp_name,
+                }
+            })
+            .collect::<Vec<_>>();
+
+        let type_name = self.ty.path().ident().map(|ident| {
+            let type_params = if !type_params.is_empty() {
+                let tps = type_params.iter().map(|tp| tp.name.clone());
+                quote! { < #( #tps ),* > }
+            } else {
+                quote! {}
+            };
+            let ty = format_ident!("{}", ident);
+            let path = syn::parse_quote! { #ty #type_params};
+            syn::Type::Path(path)
+        });
+
+        match self.ty.type_def() {
+            TypeDef::Composite(composite) => {
+                let type_name = type_name.expect("structs should have a name");
+                let fields = self.composite_fields(composite.fields(), &type_params, true);
+                let ty_toks = quote! {
                         pub struct #type_name #fields
                     };
-                    tokens.extend(ty_toks);
-                }
-                TypeDef::Variant(variant) => {
-                    let type_name = type_name.expect("variants should have a name");
-                    let variants = variant.variants().iter().map(|v| {
-                        let variant_name = format_ident!("{}", v.name());
-                        let fields = if v.fields().is_empty() {
-                            quote! {}
-                        } else {
-                            self.composite_fields(v.fields(), &type_params, false)
-                        };
-                        quote! {
+                tokens.extend(ty_toks);
+            }
+            TypeDef::Variant(variant) => {
+                let type_name = type_name.expect("variants should have a name");
+                let variants = variant.variants().iter().map(|v| {
+                    let variant_name = format_ident!("{}", v.name());
+                    let fields = if v.fields().is_empty() {
+                        quote! {}
+                    } else {
+                        self.composite_fields(v.fields(), &type_params, false)
+                    };
+                    quote! {
                             #variant_name #fields
                         }
-                    });
-                    let ty_toks = quote! {
+                });
+                let ty_toks = quote! {
                         pub enum #type_name {
                             #( #variants, )*
                         }
                     };
-                    tokens.extend(ty_toks);
-                }
-                _ => (), // all built-in types should already be in scope
+                tokens.extend(ty_toks);
             }
-            // ty.generate_type(&mut tokens, ty, types);
-        }
-        let root_mod = format_ident!("{}", root_mod);
-
-        quote! {
-            // required that this be placed at crate root so can do ::registry_types.
-            // alternatively use relative paths? more complicated
-            mod #root_mod {
-                #tokens
-            }
+            _ => (), // all built-in types should already be in scope
         }
     }
+}
 
+impl<'a> ModuleType<'a> {
     fn composite_fields(
         &self,
         fields: &[Field<PortableForm>],
@@ -116,7 +167,7 @@ impl<'a> TypeGenerator<'a> {
         if named {
             let fields = fields.iter().map(|field| {
                 let name = format_ident!("{}", field.name().expect("named field without a name"));
-                let ty = self.resolve_type(field.ty().id(), type_params);
+                let ty = self.resolve_type_path(field.ty().id(), type_params);
                 if is_struct {
                     quote! { pub #name: #ty }
                 } else {
@@ -130,7 +181,7 @@ impl<'a> TypeGenerator<'a> {
             }
         } else if unnamed {
             let fields = fields.iter().map(|field| {
-                let ty = self.resolve_type(field.ty().id(), type_params);
+                let ty = self.resolve_type_path(field.ty().id(), type_params);
                 if is_struct {
                     quote! { pub #ty }
                 } else {
@@ -152,7 +203,7 @@ impl<'a> TypeGenerator<'a> {
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type(&self, id: NonZeroU32, parent_type_params: &[TypeParameter]) -> syn::Type {
+    pub fn resolve_type_path(&self, id: NonZeroU32, parent_type_params: &[TypeParameter]) -> syn::Type {
         if let Some(parent_type_param) = parent_type_params
             .iter()
             .find(|tp| tp.concrete_type_id == id)
@@ -162,14 +213,14 @@ impl<'a> TypeGenerator<'a> {
         }
 
         let ty = self
-            .types
+            .type_registry
             .resolve(id)
             .expect(&format!("No type with id {} found", id));
 
         let type_params = ty
             .type_params()
             .iter()
-            .map(|tp| self.resolve_type(tp.id(), parent_type_params))
+            .map(|tp| self.resolve_type_path(tp.id(), parent_type_params))
             .collect::<Vec<_>>();
 
         match ty.type_def() {
@@ -187,12 +238,12 @@ impl<'a> TypeGenerator<'a> {
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(sequence) => {
-                let type_param = self.resolve_type(sequence.type_param().id(), parent_type_params);
+                let type_param = self.resolve_type_path(sequence.type_param().id(), parent_type_params);
                 let type_path = syn::parse_quote! { Vec<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type = self.resolve_type(array.type_param().id(), parent_type_params);
+                let array_type = self.resolve_type_path(array.type_param().id(), parent_type_params);
                 let array_len = array.len() as usize;
                 let array = syn::parse_quote! { [#array_type; #array_len] };
                 syn::Type::Array(array)
@@ -201,7 +252,7 @@ impl<'a> TypeGenerator<'a> {
                 let tuple_types = tuple
                     .fields()
                     .iter()
-                    .map(|type_id| self.resolve_type(type_id.id(), parent_type_params));
+                    .map(|type_id| self.resolve_type_path(type_id.id(), parent_type_params));
                 let tuple = syn::parse_quote! { (#( # tuple_types, )* ) };
                 syn::Type::Tuple(tuple)
             }
@@ -228,28 +279,16 @@ impl<'a> TypeGenerator<'a> {
                 syn::Type::Path(path)
             }
             TypeDef::Phantom(phantom) => {
-                let type_param = self.resolve_type(phantom.type_param().id(), parent_type_params);
+                let type_param = self.resolve_type_path(phantom.type_param().id(), parent_type_params);
                 let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Compact(compact) => {
                 // todo: change the return type of this method to include info that it is compact
                 // and should be annotated with #[compact] for fields
-                self.resolve_type(compact.type_param().id(), parent_type_params)
+                self.resolve_type_path(compact.type_param().id(), parent_type_params)
             }
         }
-    }
-}
-
-pub struct Module<'a> {
-    name: String,
-    children: Vec<&'a Module<'a>>,
-    types: Vec<Type<PortableForm>>
-}
-
-impl<'a> quote::ToTokens for Module<'a> {
-    fn to_tokens(&self, tokens: &mut TokenStream) {
-        unimplemented!()
     }
 }
 
@@ -277,11 +316,10 @@ mod tests {
         registry.register_type(&meta_type::<S>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub struct S {
@@ -314,11 +352,10 @@ mod tests {
         registry.register_type(&meta_type::<Parent>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub struct Parent {
@@ -349,11 +386,10 @@ mod tests {
         registry.register_type(&meta_type::<Parent>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub struct Parent(pub bool, pub Child,);
@@ -378,11 +414,10 @@ mod tests {
         registry.register_type(&meta_type::<E>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub enum E {
@@ -408,11 +443,10 @@ mod tests {
         registry.register_type(&meta_type::<S>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub struct S {
@@ -437,11 +471,10 @@ mod tests {
         registry.register_type(&meta_type::<S>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub struct S {
@@ -472,11 +505,10 @@ mod tests {
         registry.register_type(&meta_type::<Bar>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub struct Bar {
@@ -510,11 +542,10 @@ mod tests {
         registry.register_type(&meta_type::<Bar<bool>>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
                     pub struct Bar<_0> {
@@ -561,34 +592,33 @@ mod tests {
         registry.register_type(&meta_type::<root::c::Foo>());
         let portable_types: PortableRegistry = registry.into();
 
-        let generator = TypeGenerator::new(&portable_types);
-        let types = generator.generate("root");
+        let types = generate_types_mod(&portable_types, "root");
 
         assert_eq!(
-            types.to_string(),
+            types.into_token_stream().to_string(),
             quote! {
                 mod root {
-                    use super::root as root;
+                    use super::root;
 
-                    mod A {
-                        use super::root as root;
+                    mod a {
+                        use super::root;
 
                         pub struct Foo {}
 
-                        mod B {
-                            use super::root as root;
+                        pub mod b {
+                            use super::root;
 
                             pub struct Bar {
-                                a: super::Foo
+                                a: root::a::Foo,
                             }
                         }
                     }
 
-                    mod C {
-                        use super::root as root;
+                    mod c {
+                        use super::root;
 
                         pub struct Foo {
-                            a: super::A::B::Bar,
+                            a: root::a::b::Bar,
                         }
                     }
                 }
