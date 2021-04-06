@@ -18,6 +18,7 @@ impl RuntimeGenerator {
     pub fn generate_runtime(&self, mod_name: &str) -> TokenStream2 {
         let type_gen = TypeGenerator::new(&self.metadata.types, "__runtime_types");
         let types_mod = type_gen.generate_types_mod();
+        let types_mod_ident = types_mod.ident();
         let modules = self.metadata.modules.iter().map(|module| {
             use heck::SnakeCase as _;
             let mod_name = format_ident!("{}", module.name.to_string().to_snake_case());
@@ -64,8 +65,7 @@ impl RuntimeGenerator {
             let calls = if !calls.is_empty() {
                 quote! {
                     mod calls {
-                        // todo: use types mod name defined earlier
-                        use super::types;
+                        use super::#types_mod_ident;
                         #( #calls )*
                     }
                 }
@@ -75,7 +75,7 @@ impl RuntimeGenerator {
             let events = if !events.is_empty() {
                 quote! {
                     pub mod events {
-                        use super::types;
+                        use super::#types_mod_ident;
                         #( #events )*
                     }
                 }
@@ -85,7 +85,7 @@ impl RuntimeGenerator {
 
             quote! {
                 pub mod #mod_name {
-                    use super::types;
+                    use super::#types_mod_ident;
                     #calls
                     #events
                 }

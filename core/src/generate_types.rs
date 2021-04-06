@@ -224,7 +224,7 @@ impl<'a> Module<'a> {
         }
     }
 
-    /// Returns the module with the given path, if any
+    /// Returns the module with the given path, if any.
     pub fn get_mod(&'a self, path_segs: &[&'static str]) -> Option<&'a Module<'a>> {
         let (mod_name, rest) = path_segs.split_first()?;
         let mod_ident = Ident::new(mod_name, Span::call_site());
@@ -234,6 +234,11 @@ impl<'a> Module<'a> {
         } else {
             module.get_mod(rest)
         }
+    }
+
+    /// Returns the module ident.
+    pub fn ident(&self) -> &Ident {
+        &self.name
     }
 }
 
