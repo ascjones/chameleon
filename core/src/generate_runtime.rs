@@ -1,4 +1,4 @@
-use crate::{TypeGenerator, resolve_type_path, TokenStream2};
+use crate::{TypeGenerator, TokenStream2};
 use frame_metadata::{v13::RuntimeMetadataV13, RuntimeMetadata, RuntimeMetadataPrefixed};
 use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
@@ -16,8 +16,8 @@ impl RuntimeGenerator {
     }
 
     pub fn generate_runtime(&self, mod_name: &str) -> TokenStream2 {
-        let type_gen = TypeGenerator::new(&self.metadata.types);
-        let types_mod = type_gen.generate_types_mod("types");
+        let type_gen = TypeGenerator::new(&self.metadata.types, "types");
+        let types_mod = type_gen.generate_types_mod();
         let modules = self.metadata.modules.iter().map(|module| {
             use heck::SnakeCase as _;
             let mod_name = format_ident!("{}", module.name.to_string().to_snake_case());
@@ -32,7 +32,7 @@ impl RuntimeGenerator {
                     let name = format_ident!("{}", call.name.to_string().to_camel_case());
                     let args = call.arguments.iter().map(|arg| {
                         let name = format_ident!("{}", arg.name);
-                        let ty = resolve_type_path(&self.metadata.types, arg.ty.id(), &[]);
+                        let ty = type_gen.resolve_type_path(arg.ty.id(), &[]);
                         // todo: add docs and #[compact] attr
                         quote! { #name: #ty }
                     });
@@ -51,7 +51,7 @@ impl RuntimeGenerator {
                 .map(|event| {
                     let name = format_ident!("{}", event.name);
                     let args = event.arguments.iter().map(|arg| {
-                        resolve_type_path(&self.metadata.types, arg.ty.id(), &[])
+                        type_gen.resolve_type_path(arg.ty.id(), &[])
                         // todo: add docs and #[compact] attr
                     });
                     quote! {
