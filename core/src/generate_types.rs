@@ -73,7 +73,7 @@ impl<'a> TypeGenerator<'a> {
             .or_insert(Module::new(mod_ident, root_mod_ident.clone()));
 
         if path.len() == 1 {
-            child_mod.types.insert(id, ModuleType { ty, type_gen: self });
+            child_mod.types.insert(ty.path().clone(), ModuleType { ty, type_gen: self });
         } else {
             self.insert_type(
                 ty,
@@ -194,7 +194,7 @@ pub struct Module<'a> {
     name: Ident,
     root_mod: Ident,
     children: BTreeMap<Ident, Module<'a>>,
-    types: BTreeMap<NonZeroU32, ModuleType<'a>>,
+    types: BTreeMap<scale_info::Path<scale_info::form::PortableForm>, ModuleType<'a>>,
 }
 
 impl<'a> ToTokens for Module<'a> {
@@ -431,13 +431,13 @@ mod tests {
                 pub mod tests {
                     use super::root;
 
+                    pub struct Child {
+                        pub a: i32,
+                    }
+
                     pub struct Parent {
                         pub a: bool,
                         pub b: root::chameleon_core::generate_types::tests::Child,
-                    }
-
-                    pub struct Child {
-                        pub a: i32,
                     }
                 }
             }
@@ -469,8 +469,8 @@ mod tests {
                 pub mod tests {
                     use super::root;
 
-                    pub struct Parent(pub bool, pub root::chameleon_core::generate_types::tests::Child,);
                     pub struct Child(pub i32,);
+                    pub struct Parent(pub bool, pub root::chameleon_core::generate_types::tests::Child,);
                 }
             }
             .to_string()
@@ -585,6 +585,7 @@ mod tests {
         #[derive(TypeInfo)]
         struct Bar {
             b: Foo<u32>,
+            c: Foo<u8>,
         }
 
         let mut registry = Registry::new();
@@ -602,6 +603,7 @@ mod tests {
                     use super::root;
                     pub struct Bar {
                         pub b: root::chameleon_core::generate_types::tests::Foo<u32>,
+                        pub c: root::chameleon_core::generate_types::tests::Foo<u8>,
                     }
                     pub struct Foo<_0> {
                         pub a: _0,
