@@ -16,7 +16,7 @@ impl RuntimeGenerator {
     }
 
     pub fn generate_runtime(&self, mod_name: &str) -> TokenStream2 {
-        let type_gen = TypeGenerator::new(&self.metadata.types, "types");
+        let type_gen = TypeGenerator::new(&self.metadata.types, "__runtime_types");
         let types_mod = type_gen.generate_types_mod();
         let modules = self.metadata.modules.iter().map(|module| {
             use heck::SnakeCase as _;
