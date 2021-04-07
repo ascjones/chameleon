@@ -4,12 +4,12 @@
 
 SCALE compatible type generation for substrate runtimes. No dependencies on substrate crates required!
 
-Accepts a SCALE encoded metadata file via a CLI or a macro, and generates a Rust module with all types required for interacting with pallets for the given substrate runtime.
+Accepts a SCALE encoded metadata file via CLI or a macro, and generates a Rust module with all types required for
+interacting with pallets for the given substrate runtime.
 
 ## Current status
 
-- Generated code not compiling yet, need to handle generics
-- Only System and Balances module converted to the new metadata in https://github.com/paritytech/substrate/compare/gui-macro-attribute...aj-metadata-vnext
+- Can generate all the runtime modules and types for `node-runtime` with metadata from https://github.
+  com/paritytech/substrate/compare/aj-metadata-vnext.
 
-Using the command: `cargo run -p chameleon-cli | rustfmt --edition=2018 --emit=stdout`, generates the [following](.
-/default_node_runtime_types.rs).
+Using the command: `cargo run -p chameleon-cli | rustfmt --edition=2018 --emit=stdout`, generates the [following](./default_node_runtime_types.rs).
