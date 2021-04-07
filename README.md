@@ -12,7 +12,6 @@ on it for any production code (yet).
 
 ## Current status
 
-- Can generate all the runtime modules and types for `node-runtime` with metadata from https://github.
-  com/paritytech/substrate/compare/aj-metadata-vnext.
+- Can generate all the runtime modules and types for `node-runtime` with metadata from https://github.com/paritytech/substrate/compare/aj-metadata-vnext.
 
 Using the command: `cargo run -p chameleon-cli | rustfmt --edition=2018 --emit=stdout`, generates the [following](./default_node_runtime_types.rs).
