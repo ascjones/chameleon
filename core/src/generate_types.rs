@@ -255,7 +255,10 @@ impl<'a> ModuleType<'a> {
         let named = fields.iter().all(|f| f.name().is_some());
         let unnamed = fields.iter().all(|f| f.name().is_none());
 
-        fn unused_type_params<'a>(type_params: &'a [TypeParameter], types: impl Iterator<Item = &'a TypePath>) -> Vec<TypeParameter> {
+        fn unused_type_params<'a>(
+            type_params: &'a [TypeParameter],
+            types: impl Iterator<Item = &'a TypePath>,
+        ) -> Vec<TypeParameter> {
             let mut used_type_params = HashSet::new();
             for ty in types {
                 ty.parent_type_params(&mut used_type_params)
@@ -280,22 +283,26 @@ impl<'a> ModuleType<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            let mut fields_tokens = fields.iter().map(|(name, ty, ty_name)| {
-                // todo [AJ] remove this hack once scale-info can represent Box somehow
-                let ty = if ty_name.contains("Box<") {
-                    quote! { std::boxed::Box<#ty>}
-                } else {
-                    quote! { #ty }
-                };
-                if is_struct {
-                    quote! { pub #name: #ty }
-                } else {
-                    quote! { #name: #ty }
-                }
-            }).collect::<Vec<_>>();
+            let mut fields_tokens = fields
+                .iter()
+                .map(|(name, ty, ty_name)| {
+                    // todo [AJ] remove this hack once scale-info can represent Box somehow
+                    let ty = if ty_name.contains("Box<") {
+                        quote! { std::boxed::Box<#ty>}
+                    } else {
+                        quote! { #ty }
+                    };
+                    if is_struct {
+                        quote! { pub #name: #ty }
+                    } else {
+                        quote! { #name: #ty }
+                    }
+                })
+                .collect::<Vec<_>>();
 
             if is_struct {
-                let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty, _) |ty));
+                let unused_params =
+                    unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
 
                 if !unused_params.is_empty() {
                     fields_tokens.push(quote! {
@@ -310,30 +317,38 @@ impl<'a> ModuleType<'a> {
                 }
             }
         } else if unnamed {
-            let type_paths = fields.iter().map(|field| {
-                let ty =
-                    self.type_gen
+            let type_paths = fields
+                .iter()
+                .map(|field| {
+                    let ty = self
+                        .type_gen
                         .resolve_type_path(field.ty().id(), type_params);
-                (ty, field.type_name())
-            }).collect::<Vec<_>>();
-            let mut fields_tokens = type_paths.iter().map(|(ty, type_name)| {
-                let ty = if type_name.contains("Box<") {
-                    quote! { std::boxed::Box<#ty>}
-                } else {
-                    quote! { #ty }
-                };
-                if is_struct {
-                    quote! { pub #ty }
-                } else {
-                    quote! { #ty }
-                }
-            }).collect::<Vec<_>>();
+                    (ty, field.type_name())
+                })
+                .collect::<Vec<_>>();
+            let mut fields_tokens = type_paths
+                .iter()
+                .map(|(ty, type_name)| {
+                    let ty = if type_name.contains("Box<") {
+                        quote! { std::boxed::Box<#ty>}
+                    } else {
+                        quote! { #ty }
+                    };
+                    if is_struct {
+                        quote! { pub #ty }
+                    } else {
+                        quote! { #ty }
+                    }
+                })
+                .collect::<Vec<_>>();
 
             if is_struct {
-                let unused_params = unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty ));
+                let unused_params =
+                    unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
 
                 if !unused_params.is_empty() {
-                    fields_tokens.push( quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> })
+                    fields_tokens
+                        .push(quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> })
                 }
             }
 
@@ -385,9 +400,7 @@ impl TypePath {
             Self::Parameter(type_parameter) => {
                 acc.insert(type_parameter.clone());
             }
-            Self::Type(type_path) => {
-                type_path.parent_type_params(acc)
-            }
+            Self::Type(type_path) => type_path.parent_type_params(acc),
         }
     }
 }
@@ -404,7 +417,8 @@ impl TypePathType {
         let params = &self.params;
         match self.ty.type_def() {
             TypeDef::Composite(_) | TypeDef::Variant(_) => {
-                let mut ty_path = self.ty
+                let mut ty_path = self
+                    .ty
                     .path()
                     .segments()
                     .iter()
@@ -424,7 +438,8 @@ impl TypePathType {
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(_) => {
-                let type_param = self.params
+                let type_param = self
+                    .params
                     .iter()
                     .next()
                     .expect("a sequence should have a single type parameter");
@@ -432,7 +447,8 @@ impl TypePathType {
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type = self.params
+                let array_type = self
+                    .params
                     .iter()
                     .next()
                     .expect("an array should have a single type parameter");
@@ -471,14 +487,14 @@ impl TypePathType {
                     .iter()
                     .next()
                     .expect("a phantom type should have a single type parameter");
-                let type_path =
-                    syn::parse_quote! { core::marker::PhantomData<#type_param> };
+                let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Compact(_) => {
                 // todo: change the return type of this method to include info that it is compact
                 // and should be annotated with #[compact] for fields
-                let compact_type = self.params
+                let compact_type = self
+                    .params
                     .iter()
                     .next()
                     .expect("a compact type should have a single type parameter");
@@ -502,7 +518,6 @@ impl TypePathType {
         }
     }
 }
-
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TypeParameter {
@@ -759,7 +774,8 @@ mod tests {
                         pub b: std::boxed::Box<u32>,
                     }
                 }
-            }.to_string()
+            }
+            .to_string()
         )
     }
 
