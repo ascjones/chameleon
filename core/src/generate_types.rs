@@ -255,6 +255,18 @@ impl<'a> ModuleType<'a> {
         let named = fields.iter().all(|f| f.name().is_some());
         let unnamed = fields.iter().all(|f| f.name().is_none());
 
+        fn unused_type_params<'a>(type_params: &'a [TypeParameter], types: impl Iterator<Item = &'a TypePath>) -> Vec<TypeParameter> {
+            let mut used_type_params = HashSet::new();
+            for ty in types {
+                ty.parent_type_params(&mut used_type_params)
+            }
+            let type_params_set: HashSet<_> = type_params.iter().cloned().collect();
+            type_params_set
+                .difference(&used_type_params)
+                .cloned()
+                .collect()
+        }
+
         if named {
             let fields = fields
                 .iter()
@@ -276,18 +288,11 @@ impl<'a> ModuleType<'a> {
                 }
             }).collect::<Vec<_>>();
 
-            let mut used_type_params = HashSet::new();
-            for (_, ty) in &fields {
-                ty.parent_type_params(&mut used_type_params)
-            }
-            let type_params_set: HashSet<_> = type_params.iter().cloned().collect();
-            let unused_type_params = type_params_set
-                .difference(&used_type_params)
-                .collect::<Vec<_>>();
+            let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty) |ty));
 
-            if !unused_type_params.is_empty() {
+            if !unused_params.is_empty() {
                 fields_tokens.push(quote! {
-                    pub __chameleon_unused_type_params: core::marker::PhantomData<#( #unused_type_params, )*>
+                    pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
                 })
             }
 
@@ -297,18 +302,29 @@ impl<'a> ModuleType<'a> {
                 }
             }
         } else if unnamed {
-            let fields = fields.iter().map(|field| {
+            let type_paths = fields.iter().map(|field| {
                 self.type_gen
                     .resolve_type_path(field.ty().id(), type_params)
-            });
-            let fields = fields.map(|ty| {
+            }).collect::<Vec<_>>();
+            let mut fields_tokens = type_paths.iter().map(|ty| {
                 if is_struct {
                     quote! { pub #ty }
                 } else {
                     quote! { #ty }
                 }
-            });
-            let fields = quote! { ( #( #fields, )* ) };
+            }).collect::<Vec<_>>();
+
+            let unused_params = unused_type_params(type_params, type_paths.iter());
+
+            if !unused_params.is_empty() {
+                fields_tokens.push( if is_struct {
+                    quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> }
+                } else {
+                    quote! { core::marker::PhantomData<(#( #unused_params, )*)> }
+                })
+            }
+
+            let fields = quote! { ( #( #fields_tokens, )* ) };
             if is_struct {
                 // add a semicolon for tuple structs
                 quote! { #fields; }
@@ -777,15 +793,21 @@ mod tests {
         }
 
         type Foo<T> = <T as Trait>::Type;
+        type Bar<T, U> = (<T as Trait>::Type, <U as Trait>::Type);
 
         #[allow(unused)]
         #[derive(TypeInfo)]
-        struct Bar<T: Trait> {
+        struct NamedFields<T: Trait> {
             b: Foo<T>,
         }
 
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct UnnamedFields<T: Trait, U: Trait>(Bar<T, U>);
+
         let mut registry = Registry::new();
-        registry.register_type(&meta_type::<Bar<bool>>());
+        registry.register_type(&meta_type::<NamedFields<bool>>());
+        registry.register_type(&meta_type::<UnnamedFields<bool, bool>>());
         let portable_types: PortableRegistry = registry.into();
 
         let type_gen = TypeGenerator::new(&portable_types, "root");
@@ -797,10 +819,14 @@ mod tests {
             quote! {
                 pub mod tests {
                     use super::root;
-                    pub struct Bar<_0> {
+                    pub struct NamedFields<_0> {
                         pub b: u32,
                         pub __chameleon_unused_type_params: core::marker::PhantomData<_0,>,
                     }
+                    pub struct UnnamedFields<_0> (
+                        pub u32,
+                        pub core::marker::PhantomData<(_0, _1)>,
+                    );
                 }
             }
             .to_string()
