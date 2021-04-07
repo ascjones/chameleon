@@ -1,4 +1,4 @@
-use crate::{TypeGenerator, TokenStream2};
+use crate::{TokenStream2, TypeGenerator};
 use frame_metadata::{v13::RuntimeMetadataV13, RuntimeMetadata, RuntimeMetadataPrefixed};
 use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
@@ -94,7 +94,7 @@ impl RuntimeGenerator {
 
         let mod_name = format_ident!("{}", mod_name);
         quote! {
-            #[allow(dead_code, unused_imports)]
+            #[allow(dead_code, unused_imports, non_camel_case_types)]
             pub mod #mod_name {
                 #types_mod
 

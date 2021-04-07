@@ -18,7 +18,7 @@ use scale_info::{
     form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef,
     TypeDefPrimitive,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug)]
 pub struct TypeGenerator<'a> {
@@ -30,13 +30,14 @@ impl<'a> TypeGenerator<'a> {
     /// Construct a new [`TypeGenerator`].
     pub fn new(type_registry: &'a PortableRegistry, root_mod: &'static str) -> Self {
         let root_mod_ident = Ident::new(root_mod, Span::call_site());
-        Self { root_mod_ident, type_registry  }
+        Self {
+            root_mod_ident,
+            type_registry,
+        }
     }
 
     /// Generate a module containing all types defined in the supplied type registry.
-    pub fn generate_types_mod(
-        &'a self,
-    ) -> Module<'a> {
+    pub fn generate_types_mod(&'a self) -> Module<'a> {
         let mut root_mod = Module::new(self.root_mod_ident.clone(), self.root_mod_ident.clone());
 
         for (id, ty) in self.type_registry.enumerate() {
@@ -73,15 +74,11 @@ impl<'a> TypeGenerator<'a> {
             .or_insert(Module::new(mod_ident, root_mod_ident.clone()));
 
         if path.len() == 1 {
-            child_mod.types.insert(ty.path().clone(), ModuleType { ty, type_gen: self });
+            child_mod
+                .types
+                .insert(ty.path().clone(), ModuleType { ty, type_gen: self });
         } else {
-            self.insert_type(
-                ty,
-                id,
-                path[1..].to_vec(),
-                root_mod_ident,
-                child_mod,
-            )
+            self.insert_type(ty, id, path[1..].to_vec(), root_mod_ident, child_mod)
         }
     }
 
@@ -92,99 +89,38 @@ impl<'a> TypeGenerator<'a> {
         &self,
         id: NonZeroU32,
         parent_type_params: &[TypeParameter],
-    ) -> syn::Type {
+    ) -> TypePath {
         if let Some(parent_type_param) = parent_type_params
             .iter()
             .find(|tp| tp.concrete_type_id == id)
         {
-            let ty = &parent_type_param.name;
-            return syn::Type::Path(syn::parse_quote! { #ty });
+            return TypePath::Parameter(parent_type_param.clone());
         }
 
-        let ty = self.type_registry
+        let ty = self
+            .type_registry
             .resolve(id)
-            .expect(&format!("No type with id {} found", id));
+            .expect(&format!("No type with id {} found", id))
+            .clone();
 
-        let type_params = ty
-            .type_params()
+        let params_type_ids = match ty.type_def() {
+            TypeDef::Array(arr) => vec![arr.type_param().id()],
+            TypeDef::Sequence(seq) => vec![seq.type_param().id()],
+            TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
+            TypeDef::Compact(compact) => vec![compact.type_param().id()],
+            TypeDef::Phantom(phantom) => vec![phantom.type_param().id()],
+            _ => ty.type_params().iter().map(|f| f.id()).collect(),
+        };
+
+        let params = params_type_ids
             .iter()
-            .map(|tp| self.resolve_type_path(tp.id(), parent_type_params))
+            .map(|tp| self.resolve_type_path(*tp, parent_type_params))
             .collect::<Vec<_>>();
 
-        match ty.type_def() {
-            TypeDef::Composite(_) | TypeDef::Variant(_) => {
-                let mut ty_path = ty
-                    .path()
-                    .segments()
-                    .iter()
-                    .map(|s| syn::PathSegment::from(format_ident!("{}", s)))
-                    .collect::<syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]>>();
-                if !ty.path().namespace().is_empty() {
-                    // types without a namespace are assumed to be globally in scope e.g. `Option`s
-                    ty_path.insert(0, syn::PathSegment::from(self.root_mod_ident.clone()));
-                }
-
-                let path = if type_params.is_empty() {
-                    syn::parse_quote! { #ty_path }
-                } else {
-                    syn::parse_quote! { #ty_path< #( #type_params ),* > }
-                };
-                syn::Type::Path(path)
-            }
-            TypeDef::Sequence(sequence) => {
-                let type_param =
-                    self.resolve_type_path(sequence.type_param().id(), parent_type_params);
-                let type_path = syn::parse_quote! { Vec<#type_param> };
-                syn::Type::Path(type_path)
-            }
-            TypeDef::Array(array) => {
-                let array_type =
-                    self.resolve_type_path(array.type_param().id(), parent_type_params);
-                let array_len = array.len() as usize;
-                let array = syn::parse_quote! { [#array_type; #array_len] };
-                syn::Type::Array(array)
-            }
-            TypeDef::Tuple(tuple) => {
-                let tuple_types = tuple
-                    .fields()
-                    .iter()
-                    .map(|type_id| self.resolve_type_path(type_id.id(), parent_type_params));
-                let tuple = syn::parse_quote! { (#( # tuple_types, )* ) };
-                syn::Type::Tuple(tuple)
-            }
-            TypeDef::Primitive(primitive) => {
-                let primitive = match primitive {
-                    TypeDefPrimitive::Bool => "bool",
-                    TypeDefPrimitive::Char => "char",
-                    TypeDefPrimitive::Str => "String",
-                    TypeDefPrimitive::U8 => "u8",
-                    TypeDefPrimitive::U16 => "u16",
-                    TypeDefPrimitive::U32 => "u32",
-                    TypeDefPrimitive::U64 => "u64",
-                    TypeDefPrimitive::U128 => "u128",
-                    TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
-                    TypeDefPrimitive::I8 => "i8",
-                    TypeDefPrimitive::I16 => "i16",
-                    TypeDefPrimitive::I32 => "i32",
-                    TypeDefPrimitive::I64 => "i64",
-                    TypeDefPrimitive::I128 => "i128",
-                    TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
-                };
-                let ident = format_ident!("{}", primitive);
-                let path = syn::parse_quote! { #ident };
-                syn::Type::Path(path)
-            }
-            TypeDef::Phantom(phantom) => {
-                let type_param =
-                    self.resolve_type_path(phantom.type_param().id(), parent_type_params);
-                let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
-                syn::Type::Path(type_path)
-            }
-            TypeDef::Compact(compact) => {
-                // todo: change the return type of this method to include info that it is compact
-                // and should be annotated with #[compact] for fields
-                self.resolve_type_path(compact.type_param().id(), parent_type_params)
-            }
+        TypePath::Path {
+            ty,
+            params,
+            root_mod_ident: self.root_mod_ident.clone(),
         }
     }
 }
@@ -266,8 +202,7 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
 
         let type_name = self.ty.path().ident().map(|ident| {
             let type_params = if !type_params.is_empty() {
-                let tps = type_params.iter().map(|tp| tp.name.clone());
-                quote! { < #( #tps ),* > }
+                quote! { < #( #type_params ),* > }
             } else {
                 quote! {}
             };
@@ -319,24 +254,54 @@ impl<'a> ModuleType<'a> {
     ) -> TokenStream2 {
         let named = fields.iter().all(|f| f.name().is_some());
         let unnamed = fields.iter().all(|f| f.name().is_none());
+
         if named {
-            let fields = fields.iter().map(|field| {
-                let name = format_ident!("{}", field.name().expect("named field without a name"));
-                let ty = self.type_gen.resolve_type_path(field.ty().id(), type_params);
+            let fields = fields
+                .iter()
+                .map(|field| {
+                    let name =
+                        format_ident!("{}", field.name().expect("named field without a name"));
+                    let ty = self
+                        .type_gen
+                        .resolve_type_path(field.ty().id(), type_params);
+                    (name, ty)
+                })
+                .collect::<Vec<_>>();
+
+            let mut fields_tokens = fields.iter().map(|(name, ty)| {
                 if is_struct {
                     quote! { pub #name: #ty }
                 } else {
                     quote! { #name: #ty }
                 }
-            });
+            }).collect::<Vec<_>>();
+
+            let mut used_type_params = HashSet::new();
+            for (_, ty) in &fields {
+                ty.parent_type_params(&mut used_type_params)
+            }
+            let type_params_set: HashSet<_> = type_params.iter().cloned().collect();
+            let unused_type_params = type_params_set
+                .difference(&used_type_params)
+                .collect::<Vec<_>>();
+
+            if !unused_type_params.is_empty() {
+                fields_tokens.push(quote! {
+                    pub __chameleon_unused_type_params: core::marker::PhantomData<#( #unused_type_params, )*>
+                })
+            }
+
             quote! {
                 {
-                    #( #fields, )*
+                    #( #fields_tokens, )*
                 }
             }
         } else if unnamed {
             let fields = fields.iter().map(|field| {
-                let ty = self.type_gen.resolve_type_path(field.ty().id(), type_params);
+                self.type_gen
+                    .resolve_type_path(field.ty().id(), type_params)
+            });
+            let fields = fields.map(|ty| {
                 if is_struct {
                     quote! { pub #ty }
                 } else {
@@ -356,9 +321,154 @@ impl<'a> ModuleType<'a> {
     }
 }
 
+#[derive(Debug)]
+pub enum TypePath {
+    Parameter(TypeParameter),
+    Path {
+        ty: Type<PortableForm>,
+        params: Vec<TypePath>,
+        root_mod_ident: Ident,
+    },
+}
+
+impl quote::ToTokens for TypePath {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        let syn_type = self.to_syn_type();
+        syn_type.to_tokens(tokens)
+    }
+}
+
+impl TypePath {
+    fn to_syn_type(&self) -> syn::Type {
+        match self {
+            TypePath::Parameter(ty_param) => {
+                let ty = &ty_param.name;
+                syn::Type::Path(syn::parse_quote! { #ty })
+            }
+            TypePath::Path {
+                ty,
+                params,
+                root_mod_ident,
+            } => {
+                match ty.type_def() {
+                    TypeDef::Composite(_) | TypeDef::Variant(_) => {
+                        let mut ty_path = ty
+                            .path()
+                            .segments()
+                            .iter()
+                            .map(|s| syn::PathSegment::from(format_ident!("{}", s)))
+                            .collect::<syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]>>();
+                        if !ty.path().namespace().is_empty() {
+                            // types without a namespace are assumed to be globally in scope e.g. `Option`s
+                            ty_path.insert(0, syn::PathSegment::from(root_mod_ident.clone()));
+                        }
+
+                        let path = if params.is_empty() {
+                            syn::parse_quote! { #ty_path }
+                        } else {
+                            syn::parse_quote! { #ty_path< #( #params ),* > }
+                        };
+                        syn::Type::Path(path)
+                    }
+                    TypeDef::Sequence(_) => {
+                        let type_param = params
+                            .iter()
+                            .next()
+                            .expect("a sequence should have a single type parameter");
+                        let type_path = syn::parse_quote! { Vec<#type_param> };
+                        syn::Type::Path(type_path)
+                    }
+                    TypeDef::Array(array) => {
+                        let array_type = params
+                            .iter()
+                            .next()
+                            .expect("an array should have a single type parameter");
+                        let array_len = array.len() as usize;
+                        let array = syn::parse_quote! { [#array_type; #array_len] };
+                        syn::Type::Array(array)
+                    }
+                    TypeDef::Tuple(_) => {
+                        let tuple = syn::parse_quote! { (#( # params, )* ) };
+                        syn::Type::Tuple(tuple)
+                    }
+                    TypeDef::Primitive(primitive) => {
+                        let primitive = match primitive {
+                            TypeDefPrimitive::Bool => "bool",
+                            TypeDefPrimitive::Char => "char",
+                            TypeDefPrimitive::Str => "String",
+                            TypeDefPrimitive::U8 => "u8",
+                            TypeDefPrimitive::U16 => "u16",
+                            TypeDefPrimitive::U32 => "u32",
+                            TypeDefPrimitive::U64 => "u64",
+                            TypeDefPrimitive::U128 => "u128",
+                            TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
+                            TypeDefPrimitive::I8 => "i8",
+                            TypeDefPrimitive::I16 => "i16",
+                            TypeDefPrimitive::I32 => "i32",
+                            TypeDefPrimitive::I64 => "i64",
+                            TypeDefPrimitive::I128 => "i128",
+                            TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
+                        };
+                        let ident = format_ident!("{}", primitive);
+                        let path = syn::parse_quote! { #ident };
+                        syn::Type::Path(path)
+                    }
+                    TypeDef::Phantom(_) => {
+                        let type_param = params
+                            .iter()
+                            .next()
+                            .expect("a phantom type should have a single type parameter");
+                        let type_path =
+                            syn::parse_quote! { core::marker::PhantomData<#type_param> };
+                        syn::Type::Path(type_path)
+                    }
+                    TypeDef::Compact(_) => {
+                        // todo: change the return type of this method to include info that it is compact
+                        // and should be annotated with #[compact] for fields
+                        let compact_type = params
+                            .iter()
+                            .next()
+                            .expect("a compact type should have a single type parameter");
+                        syn::Type::Path(syn::parse_quote! ( #compact_type ))
+                    }
+                }
+            }
+        }
+    }
+
+    /// Returns the type parameters in a path which are inherited from the containing type.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// struct S<T> {
+    ///     a: Vec<Option<T>>, // the parent type param here is `T`
+    /// }
+    /// ```
+    fn parent_type_params(&self, acc: &mut HashSet<TypeParameter>) {
+        match self {
+            Self::Parameter(type_parameter) => {
+                acc.insert(type_parameter.clone());
+            }
+            Self::Path { params, .. } => {
+                for p in params {
+                    p.parent_type_params(acc);
+                }
+            }
+        }
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TypeParameter {
     concrete_type_id: NonZeroU32,
     name: proc_macro2::Ident,
+}
+
+impl quote::ToTokens for TypeParameter {
+    fn to_tokens(&self, tokens: &mut TokenStream) {
+        self.name.to_tokens(tokens)
+    }
 }
 
 #[cfg(test)]
@@ -649,6 +759,47 @@ mod tests {
                     pub struct Foo<_0, _1> {
                         pub a: _0,
                         pub b: Option<(_0, _1)>,
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[test]
+    fn generics_with_alias_adds_phantom_data_marker() {
+        trait Trait {
+            type Type;
+        }
+
+        impl Trait for bool {
+            type Type = u32;
+        }
+
+        type Foo<T> = <T as Trait>::Type;
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct Bar<T: Trait> {
+            b: Foo<T>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<Bar<bool>>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    pub struct Bar<_0> {
+                        pub b: u32,
+                        pub __chameleon_unused_type_params: core::marker::PhantomData<_0,>,
                     }
                 }
             }
