@@ -117,11 +117,11 @@ impl<'a> TypeGenerator<'a> {
             .map(|tp| self.resolve_type_path(*tp, parent_type_params))
             .collect::<Vec<_>>();
 
-        TypePath::Path {
+        TypePath::Type(TypePathType {
             ty,
             params,
             root_mod_ident: self.root_mod_ident.clone(),
-        }
+        })
     }
 }
 
@@ -340,11 +340,7 @@ impl<'a> ModuleType<'a> {
 #[derive(Debug)]
 pub enum TypePath {
     Parameter(TypeParameter),
-    Path {
-        ty: Type<PortableForm>,
-        params: Vec<TypePath>,
-        root_mod_ident: Ident,
-    },
+    Type(TypePathType),
 }
 
 impl quote::ToTokens for TypePath {
@@ -357,98 +353,8 @@ impl quote::ToTokens for TypePath {
 impl TypePath {
     fn to_syn_type(&self) -> syn::Type {
         match self {
-            TypePath::Parameter(ty_param) => {
-                let ty = &ty_param.name;
-                syn::Type::Path(syn::parse_quote! { #ty })
-            }
-            TypePath::Path {
-                ty,
-                params,
-                root_mod_ident,
-            } => {
-                match ty.type_def() {
-                    TypeDef::Composite(_) | TypeDef::Variant(_) => {
-                        let mut ty_path = ty
-                            .path()
-                            .segments()
-                            .iter()
-                            .map(|s| syn::PathSegment::from(format_ident!("{}", s)))
-                            .collect::<syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]>>();
-                        if !ty.path().namespace().is_empty() {
-                            // types without a namespace are assumed to be globally in scope e.g. `Option`s
-                            ty_path.insert(0, syn::PathSegment::from(root_mod_ident.clone()));
-                        }
-
-                        let path = if params.is_empty() {
-                            syn::parse_quote! { #ty_path }
-                        } else {
-                            syn::parse_quote! { #ty_path< #( #params ),* > }
-                        };
-                        syn::Type::Path(path)
-                    }
-                    TypeDef::Sequence(_) => {
-                        let type_param = params
-                            .iter()
-                            .next()
-                            .expect("a sequence should have a single type parameter");
-                        let type_path = syn::parse_quote! { Vec<#type_param> };
-                        syn::Type::Path(type_path)
-                    }
-                    TypeDef::Array(array) => {
-                        let array_type = params
-                            .iter()
-                            .next()
-                            .expect("an array should have a single type parameter");
-                        let array_len = array.len() as usize;
-                        let array = syn::parse_quote! { [#array_type; #array_len] };
-                        syn::Type::Array(array)
-                    }
-                    TypeDef::Tuple(_) => {
-                        let tuple = syn::parse_quote! { (#( # params, )* ) };
-                        syn::Type::Tuple(tuple)
-                    }
-                    TypeDef::Primitive(primitive) => {
-                        let primitive = match primitive {
-                            TypeDefPrimitive::Bool => "bool",
-                            TypeDefPrimitive::Char => "char",
-                            TypeDefPrimitive::Str => "String",
-                            TypeDefPrimitive::U8 => "u8",
-                            TypeDefPrimitive::U16 => "u16",
-                            TypeDefPrimitive::U32 => "u32",
-                            TypeDefPrimitive::U64 => "u64",
-                            TypeDefPrimitive::U128 => "u128",
-                            TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
-                            TypeDefPrimitive::I8 => "i8",
-                            TypeDefPrimitive::I16 => "i16",
-                            TypeDefPrimitive::I32 => "i32",
-                            TypeDefPrimitive::I64 => "i64",
-                            TypeDefPrimitive::I128 => "i128",
-                            TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
-                        };
-                        let ident = format_ident!("{}", primitive);
-                        let path = syn::parse_quote! { #ident };
-                        syn::Type::Path(path)
-                    }
-                    TypeDef::Phantom(_) => {
-                        let type_param = params
-                            .iter()
-                            .next()
-                            .expect("a phantom type should have a single type parameter");
-                        let type_path =
-                            syn::parse_quote! { core::marker::PhantomData<#type_param> };
-                        syn::Type::Path(type_path)
-                    }
-                    TypeDef::Compact(_) => {
-                        // todo: change the return type of this method to include info that it is compact
-                        // and should be annotated with #[compact] for fields
-                        let compact_type = params
-                            .iter()
-                            .next()
-                            .expect("a compact type should have a single type parameter");
-                        syn::Type::Path(syn::parse_quote! ( #compact_type ))
-                    }
-                }
-            }
+            TypePath::Parameter(ty_param) => syn::Type::Path(syn::parse_quote! { #ty_param }),
+            TypePath::Type(ty) => ty.to_syn_type(),
         }
     }
 
@@ -466,14 +372,124 @@ impl TypePath {
             Self::Parameter(type_parameter) => {
                 acc.insert(type_parameter.clone());
             }
-            Self::Path { params, .. } => {
-                for p in params {
-                    p.parent_type_params(acc);
-                }
+            Self::Type(type_path) => {
+                type_path.parent_type_params(acc)
             }
         }
     }
 }
+
+#[derive(Debug)]
+pub struct TypePathType {
+    ty: Type<PortableForm>,
+    params: Vec<TypePath>,
+    root_mod_ident: Ident,
+}
+
+impl TypePathType {
+    fn to_syn_type(&self) -> syn::Type {
+        let params = &self.params;
+        match self.ty.type_def() {
+            TypeDef::Composite(_) | TypeDef::Variant(_) => {
+                let mut ty_path = self.ty
+                    .path()
+                    .segments()
+                    .iter()
+                    .map(|s| syn::PathSegment::from(format_ident!("{}", s)))
+                    .collect::<syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]>>();
+                if !self.ty.path().namespace().is_empty() {
+                    // types without a namespace are assumed to be globally in scope e.g. `Option`s
+                    ty_path.insert(0, syn::PathSegment::from(self.root_mod_ident.clone()));
+                }
+
+                let params = &self.params;
+                let path = if params.is_empty() {
+                    syn::parse_quote! { #ty_path }
+                } else {
+                    syn::parse_quote! { #ty_path< #( #params ),* > }
+                };
+                syn::Type::Path(path)
+            }
+            TypeDef::Sequence(_) => {
+                let type_param = self.params
+                    .iter()
+                    .next()
+                    .expect("a sequence should have a single type parameter");
+                let type_path = syn::parse_quote! { Vec<#type_param> };
+                syn::Type::Path(type_path)
+            }
+            TypeDef::Array(array) => {
+                let array_type = self.params
+                    .iter()
+                    .next()
+                    .expect("an array should have a single type parameter");
+                let array_len = array.len() as usize;
+                let array = syn::parse_quote! { [#array_type; #array_len] };
+                syn::Type::Array(array)
+            }
+            TypeDef::Tuple(_) => {
+                let tuple = syn::parse_quote! { (#( # params, )* ) };
+                syn::Type::Tuple(tuple)
+            }
+            TypeDef::Primitive(primitive) => {
+                let primitive = match primitive {
+                    TypeDefPrimitive::Bool => "bool",
+                    TypeDefPrimitive::Char => "char",
+                    TypeDefPrimitive::Str => "String",
+                    TypeDefPrimitive::U8 => "u8",
+                    TypeDefPrimitive::U16 => "u16",
+                    TypeDefPrimitive::U32 => "u32",
+                    TypeDefPrimitive::U64 => "u64",
+                    TypeDefPrimitive::U128 => "u128",
+                    TypeDefPrimitive::U256 => unimplemented!("not a rust primitive"),
+                    TypeDefPrimitive::I8 => "i8",
+                    TypeDefPrimitive::I16 => "i16",
+                    TypeDefPrimitive::I32 => "i32",
+                    TypeDefPrimitive::I64 => "i64",
+                    TypeDefPrimitive::I128 => "i128",
+                    TypeDefPrimitive::I256 => unimplemented!("not a rust primitive"),
+                };
+                let ident = format_ident!("{}", primitive);
+                let path = syn::parse_quote! { #ident };
+                syn::Type::Path(path)
+            }
+            TypeDef::Phantom(_) => {
+                let type_param = params
+                    .iter()
+                    .next()
+                    .expect("a phantom type should have a single type parameter");
+                let type_path =
+                    syn::parse_quote! { core::marker::PhantomData<#type_param> };
+                syn::Type::Path(type_path)
+            }
+            TypeDef::Compact(_) => {
+                // todo: change the return type of this method to include info that it is compact
+                // and should be annotated with #[compact] for fields
+                let compact_type = self.params
+                    .iter()
+                    .next()
+                    .expect("a compact type should have a single type parameter");
+                syn::Type::Path(syn::parse_quote! ( #compact_type ))
+            }
+        }
+    }
+
+    /// Returns the type parameters in a path which are inherited from the containing type.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// struct S<T> {
+    ///     a: Vec<Option<T>>, // the parent type param here is `T`
+    /// }
+    /// ```
+    fn parent_type_params(&self, acc: &mut HashSet<TypeParameter>) {
+        for p in &self.params {
+            p.parent_type_params(acc);
+        }
+    }
+}
+
 
 #[derive(Clone, Debug, Eq, PartialEq, Hash)]
 pub struct TypeParameter {
@@ -696,6 +712,41 @@ mod tests {
                 }
             }
             .to_string()
+        )
+    }
+
+    #[test]
+    fn box_fields() {
+        // todo: [AJ] remove hack for Box and make no_std compatible using `alloc::Box`
+
+        use std::boxed::Box;
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: std::boxed::Box<bool>,
+            b: Box<u32>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    pub struct S {
+                        pub a: std::boxed::Box<bool>,
+                        pub b: std::boxed::Box<u32>,
+                    }
+                }
+            }.to_string()
         )
     }
 
