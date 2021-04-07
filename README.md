@@ -5,7 +5,7 @@ SCALE compatible type generation for substrate runtimes. No dependencies on subs
 Accepts a SCALE encoded metadata file via CLI or a macro, and generates a Rust module with all types required for
 interacting with pallets for the given substrate runtime.
 
-## Health warning :warning:
+## :warning: Health warning :warning:
 
 This is a prototype, will likely be changed significantly or even destroyed completely. So do not depend
 on it for any production code (yet).
