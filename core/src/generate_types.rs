@@ -288,12 +288,14 @@ impl<'a> ModuleType<'a> {
                 }
             }).collect::<Vec<_>>();
 
-            let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty) |ty));
+            if is_struct {
+                let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty) |ty));
 
-            if !unused_params.is_empty() {
-                fields_tokens.push(quote! {
-                    pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
-                })
+                if !unused_params.is_empty() {
+                    fields_tokens.push(quote! {
+                        pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
+                    })
+                }
             }
 
             quote! {
@@ -314,14 +316,12 @@ impl<'a> ModuleType<'a> {
                 }
             }).collect::<Vec<_>>();
 
-            let unused_params = unused_type_params(type_params, type_paths.iter());
+            if is_struct {
+                let unused_params = unused_type_params(type_params, type_paths.iter());
 
-            if !unused_params.is_empty() {
-                fields_tokens.push( if is_struct {
-                    quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> }
-                } else {
-                    quote! { core::marker::PhantomData<(#( #unused_params, )*)> }
-                })
+                if !unused_params.is_empty() {
+                    fields_tokens.push( quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> })
+                }
             }
 
             let fields = quote! { ( #( #fields_tokens, )* ) };
@@ -821,11 +821,11 @@ mod tests {
                     use super::root;
                     pub struct NamedFields<_0> {
                         pub b: u32,
-                        pub __chameleon_unused_type_params: core::marker::PhantomData<_0,>,
+                        pub __chameleon_unused_type_params: core::marker::PhantomData<(_0,)>,
                     }
-                    pub struct UnnamedFields<_0> (
-                        pub u32,
-                        pub core::marker::PhantomData<(_0, _1)>,
+                    pub struct UnnamedFields<_0, _1> (
+                        pub (u32, u32),
+                        pub core::marker::PhantomData<(_0, _1,)>,
                     );
                 }
             }

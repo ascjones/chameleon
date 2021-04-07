@@ -92,46 +92,31 @@ pub mod node_runtime {
                         core::marker::PhantomData<(_0,)>,
                         __runtime_types::frame_support::Never,
                     ),
-                    fill_block(
-                        __runtime_types::sp_arithmetic::per_things::Perbill,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    remark(Vec<u8>, core::marker::PhantomData<(_0,)>),
-                    set_heap_pages(u64, core::marker::PhantomData<(_0,)>),
-                    set_code(Vec<u8>, core::marker::PhantomData<(_0,)>),
-                    set_code_without_checks(Vec<u8>, core::marker::PhantomData<(_0,)>),
+                    fill_block(__runtime_types::sp_arithmetic::per_things::Perbill),
+                    remark(Vec<u8>),
+                    set_heap_pages(u64),
+                    set_code(Vec<u8>),
+                    set_code_without_checks(Vec<u8>),
                     set_changes_trie_config(
                         Option<__runtime_types::sp_core::changes_trie::ChangesTrieConfiguration>,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    set_storage(Vec<(Vec<u8>, Vec<u8>)>, core::marker::PhantomData<(_0,)>),
-                    kill_storage(Vec<Vec<u8>>, core::marker::PhantomData<(_0,)>),
-                    kill_prefix(Vec<u8>, u32, core::marker::PhantomData<(_0,)>),
-                    remark_with_event(Vec<u8>, core::marker::PhantomData<(_0,)>),
+                    set_storage(Vec<(Vec<u8>, Vec<u8>)>),
+                    kill_storage(Vec<Vec<u8>>),
+                    kill_prefix(Vec<u8>, u32),
+                    remark_with_event(Vec<u8>),
                 }
                 pub enum Event<_0> {
-                    ExtrinsicSuccess(
-                        __runtime_types::frame_support::weights::DispatchInfo,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    ExtrinsicSuccess(__runtime_types::frame_support::weights::DispatchInfo),
                     ExtrinsicFailed(
                         __runtime_types::sp_runtime::DispatchError,
                         __runtime_types::frame_support::weights::DispatchInfo,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     CodeUpdated,
-                    NewAccount(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    KilledAccount(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    NewAccount(__runtime_types::sp_core::crypto::AccountId32),
+                    KilledAccount(__runtime_types::sp_core::crypto::AccountId32),
                     Remarked(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     __Ignore(
                         core::marker::PhantomData<_0>,
@@ -489,7 +474,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     force_create(
                         u32,
@@ -499,13 +483,8 @@ pub mod node_runtime {
                         >,
                         bool,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    destroy(
-                        u32,
-                        __runtime_types::pallet_assets::types::DestroyWitness,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    destroy(u32, __runtime_types::pallet_assets::types::DestroyWitness),
                     mint(
                         u32,
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -513,7 +492,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     burn(
                         u32,
@@ -522,7 +500,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     transfer(
                         u32,
@@ -531,7 +508,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     transfer_keep_alive(
                         u32,
@@ -540,7 +516,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     force_transfer(
                         u32,
@@ -553,7 +528,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     freeze(
                         u32,
@@ -561,7 +535,6 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     thaw(
                         u32,
@@ -569,17 +542,15 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    freeze_asset(u32, core::marker::PhantomData<(_0,)>),
-                    thaw_asset(u32, core::marker::PhantomData<(_0,)>),
+                    freeze_asset(u32),
+                    thaw_asset(u32),
                     transfer_ownership(
                         u32,
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     set_team(
                         u32,
@@ -595,19 +566,11 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    set_metadata(u32, Vec<u8>, Vec<u8>, u8, core::marker::PhantomData<(_0,)>),
-                    clear_metadata(u32, core::marker::PhantomData<(_0,)>),
-                    force_set_metadata(
-                        u32,
-                        Vec<u8>,
-                        Vec<u8>,
-                        u8,
-                        bool,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    force_clear_metadata(u32, core::marker::PhantomData<(_0,)>),
+                    set_metadata(u32, Vec<u8>, Vec<u8>, u8),
+                    clear_metadata(u32),
+                    force_set_metadata(u32, Vec<u8>, Vec<u8>, u8, bool),
+                    force_clear_metadata(u32),
                     force_asset_status(
                         u32,
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -629,7 +592,6 @@ pub mod node_runtime {
                         u64,
                         bool,
                         bool,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     approve_transfer(
                         u32,
@@ -638,7 +600,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     cancel_approval(
                         u32,
@@ -646,7 +607,6 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     force_cancel_approval(
                         u32,
@@ -658,7 +618,6 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     transfer_approved(
                         u32,
@@ -671,7 +630,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                 }
                 pub enum Event<_0> {
@@ -679,78 +637,40 @@ pub mod node_runtime {
                         u32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    Issued(
-                        u32,
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u64,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    Issued(u32, __runtime_types::sp_core::crypto::AccountId32, u64),
                     Transferred(
                         u32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    Burned(
-                        u32,
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u64,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    Burned(u32, __runtime_types::sp_core::crypto::AccountId32, u64),
                     TeamChanged(
                         u32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    OwnerChanged(
-                        u32,
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    Frozen(
-                        u32,
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    Thawed(
-                        u32,
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    AssetFrozen(u32, core::marker::PhantomData<(_0,)>),
-                    AssetThawed(u32, core::marker::PhantomData<(_0,)>),
-                    Destroyed(u32, core::marker::PhantomData<(_0,)>),
-                    ForceCreated(
-                        u32,
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    MetadataSet(
-                        u32,
-                        Vec<u8>,
-                        Vec<u8>,
-                        u8,
-                        bool,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    MetadataCleared(u32, core::marker::PhantomData<(_0,)>),
+                    OwnerChanged(u32, __runtime_types::sp_core::crypto::AccountId32),
+                    Frozen(u32, __runtime_types::sp_core::crypto::AccountId32),
+                    Thawed(u32, __runtime_types::sp_core::crypto::AccountId32),
+                    AssetFrozen(u32),
+                    AssetThawed(u32),
+                    Destroyed(u32),
+                    ForceCreated(u32, __runtime_types::sp_core::crypto::AccountId32),
+                    MetadataSet(u32, Vec<u8>, Vec<u8>, u8, bool),
+                    MetadataCleared(u32),
                     ApprovedTransfer(
                         u32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     ApprovalCancelled(
                         u32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     TransferredApproved(
                         u32,
@@ -758,9 +678,8 @@ pub mod node_runtime {
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         u64,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    AssetStatusChanged(u32, core::marker::PhantomData<(_0,)>),
+                    AssetStatusChanged(u32),
                     __Ignore(
                         core::marker::PhantomData<_0>,
                         __runtime_types::frame_support::Never,
@@ -792,10 +711,7 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                set_uncles(
-                    Vec<__runtime_types::sp_runtime::generic::header::Header>,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                set_uncles(Vec<__runtime_types::sp_runtime::generic::header::Header>),
             }
         }
         pub mod pallet_babe {
@@ -813,7 +729,6 @@ pub mod node_runtime {
                             __runtime_types::sp_consensus_babe::app::Public,
                         >,
                         __runtime_types::sp_session::MembershipProof,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     report_equivocation_unsigned(
                         __runtime_types::sp_consensus_slots::EquivocationProof<
@@ -821,11 +736,9 @@ pub mod node_runtime {
                             __runtime_types::sp_consensus_babe::app::Public,
                         >,
                         __runtime_types::sp_session::MembershipProof,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     plan_config_change(
                         __runtime_types::sp_consensus_babe::digests::NextConfigDescriptor,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                 }
             }
@@ -845,7 +758,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u128,
-                        core::marker::PhantomData<(_1, _0)>,
                     ),
                     set_balance(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -854,7 +766,6 @@ pub mod node_runtime {
                         >,
                         u128,
                         u128,
-                        core::marker::PhantomData<(_0, _1)>,
                     ),
                     force_transfer(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -866,7 +777,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         u128,
-                        core::marker::PhantomData<(_0, _1)>,
                     ),
                     transfer_keep_alive(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -874,53 +784,25 @@ pub mod node_runtime {
                             u32,
                         >,
                         u128,
-                        core::marker::PhantomData<(_0, _1)>,
                     ),
                 }
                 pub enum Event<_0, _1> {
-                    Endowed(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        core::marker::PhantomData<(_0, _1)>,
-                    ),
-                    DustLost(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        core::marker::PhantomData<(_1, _0)>,
-                    ),
+                    Endowed(__runtime_types::sp_core::crypto::AccountId32, u128),
+                    DustLost(__runtime_types::sp_core::crypto::AccountId32, u128),
                     Transfer(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         u128,
-                        core::marker::PhantomData<(_1, _0)>,
                     ),
-                    BalanceSet(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        u128,
-                        core::marker::PhantomData<(_1, _0)>,
-                    ),
-                    Deposit(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        core::marker::PhantomData<(_0, _1)>,
-                    ),
-                    Reserved(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        core::marker::PhantomData<(_1, _0)>,
-                    ),
-                    Unreserved(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        core::marker::PhantomData<(_0, _1)>,
-                    ),
+                    BalanceSet(__runtime_types::sp_core::crypto::AccountId32, u128, u128),
+                    Deposit(__runtime_types::sp_core::crypto::AccountId32, u128),
+                    Reserved(__runtime_types::sp_core::crypto::AccountId32, u128),
+                    Unreserved(__runtime_types::sp_core::crypto::AccountId32, u128),
                     ReserveRepatriated(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         u128,
                         __runtime_types::frame_support::traits::tokens::misc::BalanceStatus,
-                        core::marker::PhantomData<(_1, _0)>,
                     ),
                     __Ignore(
                         core::marker::PhantomData<(_0, _1)>,
@@ -936,8 +818,8 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                propose_bounty(u128, Vec<u8>, core::marker::PhantomData<(_0,)>),
-                approve_bounty(u32, core::marker::PhantomData<(_0,)>),
+                propose_bounty(u128, Vec<u8>),
+                approve_bounty(u32),
                 propose_curator(
                     u32,
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -945,30 +827,28 @@ pub mod node_runtime {
                         u32,
                     >,
                     u128,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                unassign_curator(u32, core::marker::PhantomData<(_0,)>),
-                accept_curator(u32, core::marker::PhantomData<(_0,)>),
+                unassign_curator(u32),
+                accept_curator(u32),
                 award_bounty(
                     u32,
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
                         __runtime_types::sp_core::crypto::AccountId32,
                         u32,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                claim_bounty(u32, core::marker::PhantomData<(_0,)>),
-                close_bounty(u32, core::marker::PhantomData<(_0,)>),
-                extend_bounty_expiry(u32, Vec<u8>, core::marker::PhantomData<(_0,)>),
+                claim_bounty(u32),
+                close_bounty(u32),
+                extend_bounty_expiry(u32, Vec<u8>),
             }
             pub enum RawEvent<_0, _1> {
-                BountyProposed(u32, core::marker::PhantomData<(_1, _0)>),
-                BountyRejected(u32, _0, core::marker::PhantomData<(_1,)>),
-                BountyBecameActive(u32, core::marker::PhantomData<(_1, _0)>),
-                BountyAwarded(u32, _1, core::marker::PhantomData<(_0,)>),
+                BountyProposed(u32),
+                BountyRejected(u32, _0),
+                BountyBecameActive(u32),
+                BountyAwarded(u32, _1),
                 BountyClaimed(u32, _0, _1),
-                BountyCanceled(u32, core::marker::PhantomData<(_1, _0)>),
-                BountyExtended(u32, core::marker::PhantomData<(_1, _0)>),
+                BountyCanceled(u32),
+                BountyExtended(u32),
             }
         }
         pub mod pallet_collective {
@@ -982,59 +862,24 @@ pub mod node_runtime {
                     Vec<__runtime_types::sp_core::crypto::AccountId32>,
                     Option<__runtime_types::sp_core::crypto::AccountId32>,
                     u32,
-                    core::marker::PhantomData<(_0, _1)>,
                 ),
-                execute(
-                    __runtime_types::node_runtime::Call,
-                    u32,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
-                propose(
-                    u32,
-                    __runtime_types::node_runtime::Call,
-                    u32,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
-                vote(
-                    __runtime_types::primitive_types::H256,
-                    u32,
-                    bool,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
-                close(
-                    __runtime_types::primitive_types::H256,
-                    u32,
-                    u64,
-                    u32,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
-                disapprove_proposal(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
+                execute(__runtime_types::node_runtime::Call, u32),
+                propose(u32, __runtime_types::node_runtime::Call, u32),
+                vote(__runtime_types::primitive_types::H256, u32, bool),
+                close(__runtime_types::primitive_types::H256, u32, u64, u32),
+                disapprove_proposal(__runtime_types::primitive_types::H256),
             }
             pub struct Instance1 {}
             pub struct Instance2 {}
             pub enum RawEvent<_0, _1, _2> {
-                Proposed(_1, u32, _0, u32, core::marker::PhantomData<(_2,)>),
-                Voted(_1, _0, bool, u32, u32, core::marker::PhantomData<(_2,)>),
-                Approved(_0, core::marker::PhantomData<(_2, _1)>),
-                Disapproved(_0, core::marker::PhantomData<(_1, _2)>),
-                Executed(
-                    _0,
-                    Result<(), __runtime_types::sp_runtime::DispatchError>,
-                    core::marker::PhantomData<(_1, _2)>,
-                ),
-                MemberExecuted(
-                    _0,
-                    Result<(), __runtime_types::sp_runtime::DispatchError>,
-                    core::marker::PhantomData<(_1, _2)>,
-                ),
-                Closed(_0, u32, u32, core::marker::PhantomData<(_2, _1)>),
-                PhantomData(
-                    core::marker::PhantomData<_2>,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
+                Proposed(_1, u32, _0, u32),
+                Voted(_1, _0, bool, u32, u32),
+                Approved(_0),
+                Disapproved(_0),
+                Executed(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
+                MemberExecuted(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
+                Closed(_0, u32, u32),
+                PhantomData(core::marker::PhantomData<_2>),
             }
         }
         pub mod pallet_contracts {
@@ -1055,66 +900,40 @@ pub mod node_runtime {
                         u128,
                         u64,
                         Vec<u8>,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    instantiate_with_code(
-                        u128,
-                        u64,
-                        Vec<u8>,
-                        Vec<u8>,
-                        Vec<u8>,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    instantiate_with_code(u128, u64, Vec<u8>, Vec<u8>, Vec<u8>),
                     instantiate(
                         u128,
                         u64,
                         __runtime_types::primitive_types::H256,
                         Vec<u8>,
                         Vec<u8>,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     claim_surcharge(
                         __runtime_types::sp_core::crypto::AccountId32,
                         Option<__runtime_types::sp_core::crypto::AccountId32>,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                 }
                 pub enum Event<_0> {
                     Instantiated(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    Evicted(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    Evicted(__runtime_types::sp_core::crypto::AccountId32),
                     Terminated(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     Restored(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
                         u128,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    CodeStored(
-                        __runtime_types::primitive_types::H256,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    ScheduleUpdated(u32, core::marker::PhantomData<(_0,)>),
-                    ContractEmitted(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        Vec<u8>,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    CodeRemoved(
-                        __runtime_types::primitive_types::H256,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    CodeStored(__runtime_types::primitive_types::H256),
+                    ScheduleUpdated(u32),
+                    ContractEmitted(__runtime_types::sp_core::crypto::AccountId32, Vec<u8>),
+                    CodeRemoved(__runtime_types::primitive_types::H256),
                     __Ignore(
                         core::marker::PhantomData<_0>,
                         __runtime_types::frame_support::Never,
@@ -1297,104 +1116,61 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                propose(
-                    __runtime_types::primitive_types::H256,
-                    u128,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                second(u32, u32, core::marker::PhantomData<(_0,)>),
+                propose(__runtime_types::primitive_types::H256, u128),
+                second(u32, u32),
                 vote(
                     u32,
                     __runtime_types::pallet_democracy::vote::AccountVote<u128>,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                emergency_cancel(u32, core::marker::PhantomData<(_0,)>),
-                external_propose(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                external_propose_majority(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                external_propose_default(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                fast_track(
-                    __runtime_types::primitive_types::H256,
-                    u32,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                veto_external(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                cancel_referendum(u32, core::marker::PhantomData<(_0,)>),
-                cancel_queued(u32, core::marker::PhantomData<(_0,)>),
+                emergency_cancel(u32),
+                external_propose(__runtime_types::primitive_types::H256),
+                external_propose_majority(__runtime_types::primitive_types::H256),
+                external_propose_default(__runtime_types::primitive_types::H256),
+                fast_track(__runtime_types::primitive_types::H256, u32, u32),
+                veto_external(__runtime_types::primitive_types::H256),
+                cancel_referendum(u32),
+                cancel_queued(u32),
                 delegate(
                     __runtime_types::sp_core::crypto::AccountId32,
                     __runtime_types::pallet_democracy::conviction::Conviction,
                     u128,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 undelegate,
                 clear_public_proposals,
-                note_preimage(Vec<u8>, core::marker::PhantomData<(_0,)>),
-                note_preimage_operational(Vec<u8>, core::marker::PhantomData<(_0,)>),
-                note_imminent_preimage(Vec<u8>, core::marker::PhantomData<(_0,)>),
-                note_imminent_preimage_operational(Vec<u8>, core::marker::PhantomData<(_0,)>),
-                reap_preimage(
-                    __runtime_types::primitive_types::H256,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                unlock(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                remove_vote(u32, core::marker::PhantomData<(_0,)>),
-                remove_other_vote(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                enact_proposal(
-                    __runtime_types::primitive_types::H256,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                blacklist(
-                    __runtime_types::primitive_types::H256,
-                    Option<u32>,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                cancel_proposal(u32, core::marker::PhantomData<(_0,)>),
+                note_preimage(Vec<u8>),
+                note_preimage_operational(Vec<u8>),
+                note_imminent_preimage(Vec<u8>),
+                note_imminent_preimage_operational(Vec<u8>),
+                reap_preimage(__runtime_types::primitive_types::H256, u32),
+                unlock(__runtime_types::sp_core::crypto::AccountId32),
+                remove_vote(u32),
+                remove_other_vote(__runtime_types::sp_core::crypto::AccountId32, u32),
+                enact_proposal(__runtime_types::primitive_types::H256, u32),
+                blacklist(__runtime_types::primitive_types::H256, Option<u32>),
+                cancel_proposal(u32),
             }
             pub enum RawEvent<_0, _1, _2, _3> {
-                Proposed(_3, _0, core::marker::PhantomData<(_1, _2)>),
-                Tabled(_3, _0, Vec<_1>, core::marker::PhantomData<(_2,)>),
+                Proposed(_3, _0),
+                Tabled(_3, _0, Vec<_1>),
                 ExternalTabled,
                 Started(
                     _3,
                     __runtime_types::pallet_democracy::vote_threshold::VoteThreshold,
-                    core::marker::PhantomData<(_2, _1, _0)>,
                 ),
-                Passed(_3, core::marker::PhantomData<(_1, _2, _0)>),
-                NotPassed(_3, core::marker::PhantomData<(_0, _2, _1)>),
-                Cancelled(_3, core::marker::PhantomData<(_1, _0, _2)>),
-                Executed(_3, bool, core::marker::PhantomData<(_1, _0, _2)>),
-                Delegated(_1, _1, core::marker::PhantomData<(_0, _2, _3)>),
-                Undelegated(_1, core::marker::PhantomData<(_3, _0, _2)>),
-                Vetoed(_1, _2, _3, core::marker::PhantomData<(_0,)>),
-                PreimageNoted(_2, _1, _0, core::marker::PhantomData<(_3,)>),
-                PreimageUsed(_2, _1, _0, core::marker::PhantomData<(_3,)>),
-                PreimageInvalid(_2, _3, core::marker::PhantomData<(_0, _1)>),
-                PreimageMissing(_2, _3, core::marker::PhantomData<(_1, _0)>),
-                PreimageReaped(_2, _1, _0, _1, core::marker::PhantomData<(_3,)>),
-                Unlocked(_1, core::marker::PhantomData<(_0, _3, _2)>),
-                Blacklisted(_2, core::marker::PhantomData<(_0, _3, _1)>),
+                Passed(_3),
+                NotPassed(_3),
+                Cancelled(_3),
+                Executed(_3, bool),
+                Delegated(_1, _1),
+                Undelegated(_1),
+                Vetoed(_1, _2, _3),
+                PreimageNoted(_2, _1, _0),
+                PreimageUsed(_2, _1, _0),
+                PreimageInvalid(_2, _3),
+                PreimageMissing(_2, _3),
+                PreimageReaped(_2, _1, _0, _1),
+                Unlocked(_1),
+                Blacklisted(_2),
             }
         }
         pub mod pallet_election_provider_multi_phase {
@@ -1402,28 +1178,20 @@ pub mod node_runtime {
             pub mod pallet {
                 use super::__runtime_types;
                 pub enum Call<_0> {
-                    __Ignore (core :: marker :: PhantomData < (_0 ,) > , __runtime_types :: frame_support :: Never ,) , submit_unsigned (__runtime_types :: pallet_election_provider_multi_phase :: RawSolution < () > , __runtime_types :: pallet_election_provider_multi_phase :: SolutionOrSnapshotSize , core :: marker :: PhantomData < (_0 ,) > ,) , }
+                    __Ignore (core :: marker :: PhantomData < (_0 ,) > , __runtime_types :: frame_support :: Never ,) , submit_unsigned (__runtime_types :: pallet_election_provider_multi_phase :: RawSolution < () > , __runtime_types :: pallet_election_provider_multi_phase :: SolutionOrSnapshotSize ,) , }
                 pub enum Event<_0> {
                     SolutionStored(
                         __runtime_types::pallet_election_provider_multi_phase::ElectionCompute,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     ElectionFinalized(
                         Option<
                             __runtime_types::pallet_election_provider_multi_phase::ElectionCompute,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
-                    Rewarded(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    Slashed(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    SignedPhaseStarted(u32, core::marker::PhantomData<(_0,)>),
-                    UnsignedPhaseStarted(u32, core::marker::PhantomData<(_0,)>),
+                    Rewarded(__runtime_types::sp_core::crypto::AccountId32),
+                    Slashed(__runtime_types::sp_core::crypto::AccountId32),
+                    SignedPhaseStarted(u32),
+                    UnsignedPhaseStarted(u32),
                     __Ignore(
                         core::marker::PhantomData<_0>,
                         __runtime_types::frame_support::Never,
@@ -1452,33 +1220,25 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                vote(
-                    Vec<__runtime_types::sp_core::crypto::AccountId32>,
-                    u128,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                vote(Vec<__runtime_types::sp_core::crypto::AccountId32>, u128),
                 remove_voter,
-                submit_candidacy(u32, core::marker::PhantomData<(_0,)>),
-                renounce_candidacy(
-                    __runtime_types::pallet_elections_phragmen::Renouncing,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                submit_candidacy(u32),
+                renounce_candidacy(__runtime_types::pallet_elections_phragmen::Renouncing),
                 remove_member(
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
                         __runtime_types::sp_core::crypto::AccountId32,
                         u32,
                     >,
                     bool,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                clean_defunct_voters(u32, u32, core::marker::PhantomData<(_0,)>),
+                clean_defunct_voters(u32, u32),
             }
             pub enum RawEvent<_0, _1> {
                 NewTerm(Vec<(_1, _0)>),
                 EmptyTerm,
                 ElectionError,
-                MemberKicked(_1, core::marker::PhantomData<(_0,)>),
-                Renounced(_1, core::marker::PhantomData<(_0,)>),
+                MemberKicked(_1),
+                Renounced(_1),
                 CandidateSlashed(_1, _0),
                 SeatHolderSlashed(_1, _0),
             }
@@ -1497,40 +1257,25 @@ pub mod node_runtime {
                         core::marker::PhantomData<(_0,)>,
                         __runtime_types::frame_support::Never,
                     ),
-                    place_bid(u128, u32, core::marker::PhantomData<(_0,)>),
-                    retract_bid(u128, u32, core::marker::PhantomData<(_0,)>),
-                    set_target(
-                        __runtime_types::sp_arithmetic::per_things::Perquintill,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    thaw(u32, core::marker::PhantomData<(_0,)>),
+                    place_bid(u128, u32),
+                    retract_bid(u128, u32),
+                    set_target(__runtime_types::sp_arithmetic::per_things::Perquintill),
+                    thaw(u32),
                 }
                 pub enum Event<_0> {
-                    BidPlaced(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        u32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    BidRetracted(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        u32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    BidPlaced(__runtime_types::sp_core::crypto::AccountId32, u128, u32),
+                    BidRetracted(__runtime_types::sp_core::crypto::AccountId32, u128, u32),
                     GiltIssued(
                         u32,
                         u32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         u128,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     GiltThawed(
                         u32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         u128,
                         u128,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     __Ignore(
                         core::marker::PhantomData<_0>,
@@ -1552,7 +1297,6 @@ pub mod node_runtime {
                         u32,
                     >,
                     __runtime_types::sp_session::MembershipProof,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 report_equivocation_unsigned(
                     __runtime_types::sp_finality_grandpa::EquivocationProof<
@@ -1560,9 +1304,8 @@ pub mod node_runtime {
                         u32,
                     >,
                     __runtime_types::sp_session::MembershipProof,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                note_stalled(u32, u32, core::marker::PhantomData<(_0,)>),
+                note_stalled(u32, u32),
             }
             pub enum Event {
                 NewAuthorities(Vec<(__runtime_types::sp_finality_grandpa::app::Public, u64)>),
@@ -1577,35 +1320,20 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                add_registrar(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                set_identity(
-                    __runtime_types::pallet_identity::IdentityInfo,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                add_registrar(__runtime_types::sp_core::crypto::AccountId32),
+                set_identity(__runtime_types::pallet_identity::IdentityInfo),
                 set_subs(
                     Vec<(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::pallet_identity::Data,
                     )>,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 clear_identity,
-                request_judgement(u32, u128, core::marker::PhantomData<(_0,)>),
-                cancel_request(u32, core::marker::PhantomData<(_0,)>),
-                set_fee(u32, u128, core::marker::PhantomData<(_0,)>),
-                set_account_id(
-                    u32,
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                set_fields(
-                    u32,
-                    __runtime_types::pallet_identity::IdentityFields,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                request_judgement(u32, u128),
+                cancel_request(u32),
+                set_fee(u32, u128),
+                set_account_id(u32, __runtime_types::sp_core::crypto::AccountId32),
+                set_fields(u32, __runtime_types::pallet_identity::IdentityFields),
                 provide_judgement(
                     u32,
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -1613,14 +1341,12 @@ pub mod node_runtime {
                         u32,
                     >,
                     __runtime_types::pallet_identity::Judgement<u128>,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 kill_identity(
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
                         __runtime_types::sp_core::crypto::AccountId32,
                         u32,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 add_sub(
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -1628,7 +1354,6 @@ pub mod node_runtime {
                         u32,
                     >,
                     __runtime_types::pallet_identity::Data,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 rename_sub(
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -1636,14 +1361,12 @@ pub mod node_runtime {
                         u32,
                     >,
                     __runtime_types::pallet_identity::Data,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 remove_sub(
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
                         __runtime_types::sp_core::crypto::AccountId32,
                         u32,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 quit_sub,
             }
@@ -1680,13 +1403,13 @@ pub mod node_runtime {
                 Erroneous,
             }
             pub enum RawEvent<_0, _1> {
-                IdentitySet(_0, core::marker::PhantomData<(_1,)>),
+                IdentitySet(_0),
                 IdentityCleared(_0, _1),
                 IdentityKilled(_0, _1),
-                JudgementRequested(_0, u32, core::marker::PhantomData<(_1,)>),
-                JudgementUnrequested(_0, u32, core::marker::PhantomData<(_1,)>),
-                JudgementGiven(_0, u32, core::marker::PhantomData<(_1,)>),
-                RegistrarAdded(u32, core::marker::PhantomData<(_0, _1)>),
+                JudgementRequested(_0, u32),
+                JudgementUnrequested(_0, u32),
+                JudgementGiven(_0, u32),
+                RegistrarAdded(u32),
                 SubIdentityAdded(_0, _0, _1),
                 SubIdentityRemoved(_0, _0, _1),
                 SubIdentityRevoked(_0, _0, _1),
@@ -1710,7 +1433,6 @@ pub mod node_runtime {
                 heartbeat(
                     __runtime_types::pallet_im_online::Heartbeat<u32>,
                     __runtime_types::pallet_im_online::sr25519::app_sr25519::Signature,
-                    core::marker::PhantomData<(_0,)>,
                 ),
             }
             pub struct Heartbeat<_0> {
@@ -1721,9 +1443,9 @@ pub mod node_runtime {
                 pub validators_len: _0,
             }
             pub enum RawEvent<_0, _1> {
-                HeartbeatReceived(_0, core::marker::PhantomData<(_1,)>),
+                HeartbeatReceived(_0),
                 AllGood,
-                SomeOffline(Vec<_1>, core::marker::PhantomData<(_0,)>),
+                SomeOffline(Vec<_1>),
             }
         }
         pub mod pallet_indices {
@@ -1735,33 +1457,16 @@ pub mod node_runtime {
                         core::marker::PhantomData<(_0,)>,
                         __runtime_types::frame_support::Never,
                     ),
-                    claim(u32, core::marker::PhantomData<(_0,)>),
-                    transfer(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    free(u32, core::marker::PhantomData<(_0,)>),
-                    force_transfer(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u32,
-                        bool,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    freeze(u32, core::marker::PhantomData<(_0,)>),
+                    claim(u32),
+                    transfer(__runtime_types::sp_core::crypto::AccountId32, u32),
+                    free(u32),
+                    force_transfer(__runtime_types::sp_core::crypto::AccountId32, u32, bool),
+                    freeze(u32),
                 }
                 pub enum Event<_0> {
-                    IndexAssigned(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    IndexFreed(u32, core::marker::PhantomData<(_0,)>),
-                    IndexFrozen(
-                        u32,
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    IndexAssigned(__runtime_types::sp_core::crypto::AccountId32, u32),
+                    IndexFreed(u32),
+                    IndexFrozen(u32, __runtime_types::sp_core::crypto::AccountId32),
                     __Ignore(
                         core::marker::PhantomData<_0>,
                         __runtime_types::frame_support::Never,
@@ -1776,22 +1481,16 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                buy_ticket(
-                    __runtime_types::node_runtime::Call,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                set_calls(
-                    Vec<__runtime_types::node_runtime::Call>,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                start_lottery(u128, u32, u32, bool, core::marker::PhantomData<(_0,)>),
+                buy_ticket(__runtime_types::node_runtime::Call),
+                set_calls(Vec<__runtime_types::node_runtime::Call>),
+                start_lottery(u128, u32, u32, bool),
                 stop_repeat,
             }
             pub enum RawEvent<_0, _1> {
                 LotteryStarted,
                 CallsUpdated,
                 Winner(_0, _1),
-                TicketBought(_0, (u8, u8), core::marker::PhantomData<(_1,)>),
+                TicketBought(_0, (u8, u8)),
             }
         }
         pub mod pallet_membership {
@@ -1801,31 +1500,15 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0, _1)>,
                     __runtime_types::frame_support::Never,
                 ),
-                add_member(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
-                remove_member(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
+                add_member(__runtime_types::sp_core::crypto::AccountId32),
+                remove_member(__runtime_types::sp_core::crypto::AccountId32),
                 swap_member(
                     __runtime_types::sp_core::crypto::AccountId32,
                     __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_1, _0)>,
                 ),
-                reset_members(
-                    Vec<__runtime_types::sp_core::crypto::AccountId32>,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
-                change_key(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
-                set_prime(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
+                reset_members(Vec<__runtime_types::sp_core::crypto::AccountId32>),
+                change_key(__runtime_types::sp_core::crypto::AccountId32),
+                set_prime(__runtime_types::sp_core::crypto::AccountId32),
                 clear_prime,
             }
             pub struct Instance1 {}
@@ -1835,14 +1518,8 @@ pub mod node_runtime {
                 MembersSwapped,
                 MembersReset,
                 KeyChanged,
-                Dummy(
-                    core::marker::PhantomData<(_0, _1)>,
-                    core::marker::PhantomData<(_2,)>,
-                ),
-                PhantomData(
-                    core::marker::PhantomData<_2>,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
+                Dummy(core::marker::PhantomData<(_0, _1)>),
+                PhantomData(core::marker::PhantomData<_2>),
             }
         }
         pub mod pallet_multisig {
@@ -1855,7 +1532,6 @@ pub mod node_runtime {
                 as_multi_threshold_1(
                     Vec<__runtime_types::sp_core::crypto::AccountId32>,
                     __runtime_types::node_runtime::Call,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 as_multi(
                     u16,
@@ -1864,7 +1540,6 @@ pub mod node_runtime {
                     Vec<u8>,
                     bool,
                     u64,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 approve_as_multi(
                     u16,
@@ -1872,18 +1547,16 @@ pub mod node_runtime {
                     Option<__runtime_types::pallet_multisig::Timepoint<u32>>,
                     [u8; 32usize],
                     u64,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 cancel_as_multi(
                     u16,
                     Vec<__runtime_types::sp_core::crypto::AccountId32>,
                     __runtime_types::pallet_multisig::Timepoint<u32>,
                     [u8; 32usize],
-                    core::marker::PhantomData<(_0,)>,
                 ),
             }
             pub enum RawEvent<_0, _1, _2> {
-                NewMultisig(_0, _0, _2, core::marker::PhantomData<(_1,)>),
+                NewMultisig(_0, _0, _2),
                 MultisigApproval(_0, __runtime_types::pallet_multisig::Timepoint<_1>, _0, _2),
                 MultisigExecuted(
                     _0,
@@ -1924,75 +1597,57 @@ pub mod node_runtime {
                         __runtime_types::sp_core::crypto::AccountId32,
                         Option<__runtime_types::node_runtime::ProxyType>,
                         __runtime_types::node_runtime::Call,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     add_proxy(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::node_runtime::ProxyType,
                         u32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     remove_proxy(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::node_runtime::ProxyType,
                         u32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     remove_proxies,
-                    anonymous(
-                        __runtime_types::node_runtime::ProxyType,
-                        u32,
-                        u16,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    anonymous(__runtime_types::node_runtime::ProxyType, u32, u16),
                     kill_anonymous(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::node_runtime::ProxyType,
                         u16,
                         u32,
                         u32,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     announce(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     remove_announcement(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     reject_announcement(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     proxy_announced(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         Option<__runtime_types::node_runtime::ProxyType>,
                         __runtime_types::node_runtime::Call,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                 }
                 pub enum Event<_0> {
-                    ProxyExecuted(
-                        Result<(), __runtime_types::sp_runtime::DispatchError>,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    ProxyExecuted(Result<(), __runtime_types::sp_runtime::DispatchError>),
                     AnonymousCreated(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::node_runtime::ProxyType,
                         u16,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     Announced(
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     __Ignore(
                         core::marker::PhantomData<_0>,
@@ -2020,41 +1675,21 @@ pub mod node_runtime {
                 as_recovered(
                     __runtime_types::sp_core::crypto::AccountId32,
                     __runtime_types::node_runtime::Call,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 set_recovered(
                     __runtime_types::sp_core::crypto::AccountId32,
                     __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                create_recovery(
-                    Vec<__runtime_types::sp_core::crypto::AccountId32>,
-                    u16,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                initiate_recovery(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                create_recovery(Vec<__runtime_types::sp_core::crypto::AccountId32>, u16, u32),
+                initiate_recovery(__runtime_types::sp_core::crypto::AccountId32),
                 vouch_recovery(
                     __runtime_types::sp_core::crypto::AccountId32,
                     __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                claim_recovery(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                close_recovery(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                claim_recovery(__runtime_types::sp_core::crypto::AccountId32),
+                close_recovery(__runtime_types::sp_core::crypto::AccountId32),
                 remove_recovery,
-                cancel_recovered(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                cancel_recovered(__runtime_types::sp_core::crypto::AccountId32),
             }
             pub enum RawEvent<_0> {
                 RecoveryCreated(_0),
@@ -2077,24 +1712,21 @@ pub mod node_runtime {
                     Option<(u32, u32)>,
                     u8,
                     __runtime_types::node_runtime::Call,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                cancel(u32, u32, core::marker::PhantomData<(_0,)>),
+                cancel(u32, u32),
                 schedule_named(
                     Vec<u8>,
                     u32,
                     Option<(u32, u32)>,
                     u8,
                     __runtime_types::node_runtime::Call,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                cancel_named(Vec<u8>, core::marker::PhantomData<(_0,)>),
+                cancel_named(Vec<u8>),
                 schedule_after(
                     u32,
                     Option<(u32, u32)>,
                     u8,
                     __runtime_types::node_runtime::Call,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 schedule_named_after(
                     Vec<u8>,
@@ -2102,7 +1734,6 @@ pub mod node_runtime {
                     Option<(u32, u32)>,
                     u8,
                     __runtime_types::node_runtime::Call,
-                    core::marker::PhantomData<(_0,)>,
                 ),
             }
             pub enum RawEvent<_0> {
@@ -2122,11 +1753,7 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                set_keys(
-                    __runtime_types::node_runtime::SessionKeys,
-                    Vec<u8>,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                set_keys(__runtime_types::node_runtime::SessionKeys, Vec<u8>),
                 purge_keys,
             }
             pub enum Event {
@@ -2140,43 +1767,27 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0, _1)>,
                     __runtime_types::frame_support::Never,
                 ),
-                bid(u128, core::marker::PhantomData<(_0, _1)>),
-                unbid(u32, core::marker::PhantomData<(_1, _0)>),
-                vouch(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    u128,
-                    u128,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
-                unvouch(u32, core::marker::PhantomData<(_0, _1)>),
+                bid(u128),
+                unbid(u32),
+                vouch(__runtime_types::sp_core::crypto::AccountId32, u128, u128),
+                unvouch(u32),
                 vote(
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
                         __runtime_types::sp_core::crypto::AccountId32,
                         u32,
                     >,
                     bool,
-                    core::marker::PhantomData<(_1, _0)>,
                 ),
-                defender_vote(bool, core::marker::PhantomData<(_0, _1)>),
+                defender_vote(bool),
                 payout,
-                found(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    u32,
-                    Vec<u8>,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
+                found(__runtime_types::sp_core::crypto::AccountId32, u32, Vec<u8>),
                 unfound,
-                judge_suspended_member(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    bool,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
+                judge_suspended_member(__runtime_types::sp_core::crypto::AccountId32, bool),
                 judge_suspended_candidate(
                     __runtime_types::sp_core::crypto::AccountId32,
                     __runtime_types::pallet_society::Judgement,
-                    core::marker::PhantomData<(_1, _0)>,
                 ),
-                set_max_members(u32, core::marker::PhantomData<(_0, _1)>),
+                set_max_members(u32),
             }
             pub struct DefaultInstance {}
             pub enum Judgement {
@@ -2185,26 +1796,23 @@ pub mod node_runtime {
                 Approve,
             }
             pub enum RawEvent<_0, _1, _2> {
-                Founded(_0, core::marker::PhantomData<(_2, _1)>),
-                Bid(_0, _1, core::marker::PhantomData<(_2,)>),
-                Vouch(_0, _1, _0, core::marker::PhantomData<(_2,)>),
-                AutoUnbid(_0, core::marker::PhantomData<(_2, _1)>),
-                Unbid(_0, core::marker::PhantomData<(_1, _2)>),
-                Unvouch(_0, core::marker::PhantomData<(_1, _2)>),
-                Inducted(_0, Vec<_0>, core::marker::PhantomData<(_1, _2)>),
-                SuspendedMemberJudgement(_0, bool, core::marker::PhantomData<(_1, _2)>),
-                CandidateSuspended(_0, core::marker::PhantomData<(_1, _2)>),
-                MemberSuspended(_0, core::marker::PhantomData<(_1, _2)>),
-                Challenged(_0, core::marker::PhantomData<(_1, _2)>),
-                Vote(_0, _0, bool, core::marker::PhantomData<(_1, _2)>),
-                DefenderVote(_0, bool, core::marker::PhantomData<(_1, _2)>),
-                NewMaxMembers(u32, core::marker::PhantomData<(_1, _0, _2)>),
-                Unfounded(_0, core::marker::PhantomData<(_1, _2)>),
-                Deposit(_1, core::marker::PhantomData<(_0, _2)>),
-                PhantomData(
-                    core::marker::PhantomData<_2>,
-                    core::marker::PhantomData<(_0, _1)>,
-                ),
+                Founded(_0),
+                Bid(_0, _1),
+                Vouch(_0, _1, _0),
+                AutoUnbid(_0),
+                Unbid(_0),
+                Unvouch(_0),
+                Inducted(_0, Vec<_0>),
+                SuspendedMemberJudgement(_0, bool),
+                CandidateSuspended(_0),
+                MemberSuspended(_0),
+                Challenged(_0),
+                Vote(_0, _0, bool),
+                DefenderVote(_0, bool),
+                NewMaxMembers(u32),
+                Unfounded(_0),
+                Deposit(_1),
+                PhantomData(core::marker::PhantomData<_2>),
             }
         }
         pub mod pallet_staking {
@@ -2223,15 +1831,11 @@ pub mod node_runtime {
                     __runtime_types::pallet_staking::RewardDestination<
                         __runtime_types::sp_core::crypto::AccountId32,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                bond_extra(u128, core::marker::PhantomData<(_0,)>),
-                unbond(u128, core::marker::PhantomData<(_0,)>),
-                withdraw_unbonded(u32, core::marker::PhantomData<(_0,)>),
-                validate(
-                    __runtime_types::pallet_staking::ValidatorPrefs,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                bond_extra(u128),
+                unbond(u128),
+                withdraw_unbonded(u32),
+                validate(__runtime_types::pallet_staking::ValidatorPrefs),
                 nominate(
                     Vec<
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -2239,53 +1843,32 @@ pub mod node_runtime {
                             u32,
                         >,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 chill,
                 set_payee(
                     __runtime_types::pallet_staking::RewardDestination<
                         __runtime_types::sp_core::crypto::AccountId32,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
                 set_controller(
                     __runtime_types::sp_runtime::multiaddress::MultiAddress<
                         __runtime_types::sp_core::crypto::AccountId32,
                         u32,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
-                set_validator_count(u32, core::marker::PhantomData<(_0,)>),
-                increase_validator_count(u32, core::marker::PhantomData<(_0,)>),
-                scale_validator_count(
-                    __runtime_types::sp_arithmetic::per_things::Percent,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                set_validator_count(u32),
+                increase_validator_count(u32),
+                scale_validator_count(__runtime_types::sp_arithmetic::per_things::Percent),
                 force_no_eras,
                 force_new_era,
-                set_invulnerables(
-                    Vec<__runtime_types::sp_core::crypto::AccountId32>,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                force_unstake(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                set_invulnerables(Vec<__runtime_types::sp_core::crypto::AccountId32>),
+                force_unstake(__runtime_types::sp_core::crypto::AccountId32, u32),
                 force_new_era_always,
-                cancel_deferred_slash(u32, Vec<u32>, core::marker::PhantomData<(_0,)>),
-                payout_stakers(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                rebond(u128, core::marker::PhantomData<(_0,)>),
-                set_history_depth(u32, u32, core::marker::PhantomData<(_0,)>),
-                reap_stash(
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    u32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                cancel_deferred_slash(u32, Vec<u32>),
+                payout_stakers(__runtime_types::sp_core::crypto::AccountId32, u32),
+                rebond(u128),
+                set_history_depth(u32, u32),
+                reap_stash(__runtime_types::sp_core::crypto::AccountId32, u32),
                 kick(
                     Vec<
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -2293,7 +1876,6 @@ pub mod node_runtime {
                             u32,
                         >,
                     >,
-                    core::marker::PhantomData<(_0,)>,
                 ),
             }
             pub struct Exposure<_0, _1> {
@@ -2306,15 +1888,15 @@ pub mod node_runtime {
                 pub value: _1,
             }
             pub enum RawEvent<_0, _1> {
-                EraPayout(u32, _0, _0, core::marker::PhantomData<(_1,)>),
+                EraPayout(u32, _0, _0),
                 Reward(_1, _0),
                 Slash(_1, _0),
-                OldSlashingReportDiscarded(u32, core::marker::PhantomData<(_1, _0)>),
+                OldSlashingReportDiscarded(u32),
                 StakingElection,
                 Bonded(_1, _0),
                 Unbonded(_1, _0),
                 Withdrawn(_1, _0),
-                Kicked(_1, _1, core::marker::PhantomData<(_0,)>),
+                Kicked(_1, _1),
             }
             pub enum RewardDestination<_0> {
                 Staked,
@@ -2337,21 +1919,13 @@ pub mod node_runtime {
                         core::marker::PhantomData<(_0,)>,
                         __runtime_types::frame_support::Never,
                     ),
-                    sudo(
-                        __runtime_types::node_runtime::Call,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    sudo_unchecked_weight(
-                        __runtime_types::node_runtime::Call,
-                        u64,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    sudo(__runtime_types::node_runtime::Call),
+                    sudo_unchecked_weight(__runtime_types::node_runtime::Call, u64),
                     set_key(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     sudo_as(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -2359,22 +1933,12 @@ pub mod node_runtime {
                             u32,
                         >,
                         __runtime_types::node_runtime::Call,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                 }
                 pub enum Event<_0> {
-                    Sudid(
-                        Result<(), __runtime_types::sp_runtime::DispatchError>,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    KeyChanged(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    SudoAsDone(
-                        Result<(), __runtime_types::sp_runtime::DispatchError>,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    Sudid(Result<(), __runtime_types::sp_runtime::DispatchError>),
+                    KeyChanged(__runtime_types::sp_core::crypto::AccountId32),
+                    SudoAsDone(Result<(), __runtime_types::sp_runtime::DispatchError>),
                     __Ignore(
                         core::marker::PhantomData<_0>,
                         __runtime_types::frame_support::Never,
@@ -2391,7 +1955,7 @@ pub mod node_runtime {
                         core::marker::PhantomData<(_0,)>,
                         __runtime_types::frame_support::Never,
                     ),
-                    set(u64, core::marker::PhantomData<(_0,)>),
+                    set(u64),
                 }
             }
         }
@@ -2402,40 +1966,18 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                report_awesome(
-                    Vec<u8>,
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                retract_tip(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                tip_new(
-                    Vec<u8>,
-                    __runtime_types::sp_core::crypto::AccountId32,
-                    u128,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                tip(
-                    __runtime_types::primitive_types::H256,
-                    u128,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                close_tip(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0,)>,
-                ),
-                slash_tip(
-                    __runtime_types::primitive_types::H256,
-                    core::marker::PhantomData<(_0,)>,
-                ),
+                report_awesome(Vec<u8>, __runtime_types::sp_core::crypto::AccountId32),
+                retract_tip(__runtime_types::primitive_types::H256),
+                tip_new(Vec<u8>, __runtime_types::sp_core::crypto::AccountId32, u128),
+                tip(__runtime_types::primitive_types::H256, u128),
+                close_tip(__runtime_types::primitive_types::H256),
+                slash_tip(__runtime_types::primitive_types::H256),
             }
             pub enum RawEvent<_0, _1, _2> {
-                NewTip(_2, core::marker::PhantomData<(_1, _0)>),
-                TipClosing(_2, core::marker::PhantomData<(_1, _0)>),
+                NewTip(_2),
+                TipClosing(_2),
                 TipClosed(_2, _1, _0),
-                TipRetracted(_2, core::marker::PhantomData<(_1, _0)>),
+                TipRetracted(_2),
                 TipSlashed(_2, _1, _0),
             }
         }
@@ -2456,24 +1998,20 @@ pub mod node_runtime {
                         __runtime_types::sp_core::crypto::AccountId32,
                         u32,
                     >,
-                    core::marker::PhantomData<(_0, _1)>,
                 ),
-                reject_proposal(u32, core::marker::PhantomData<(_1, _0)>),
-                approve_proposal(u32, core::marker::PhantomData<(_0, _1)>),
+                reject_proposal(u32),
+                approve_proposal(u32),
             }
             pub struct DefaultInstance {}
             pub enum RawEvent<_0, _1, _2> {
-                Proposed(u32, core::marker::PhantomData<(_0, _1, _2)>),
-                Spending(_0, core::marker::PhantomData<(_2, _1)>),
-                Awarded(u32, _0, _1, core::marker::PhantomData<(_2,)>),
-                Rejected(u32, _0, core::marker::PhantomData<(_1, _2)>),
-                Burnt(_0, core::marker::PhantomData<(_2, _1)>),
-                Rollover(_0, core::marker::PhantomData<(_1, _2)>),
-                Deposit(_0, core::marker::PhantomData<(_1, _2)>),
-                PhantomData(
-                    core::marker::PhantomData<_2>,
-                    core::marker::PhantomData<(_1, _0)>,
-                ),
+                Proposed(u32),
+                Spending(_0),
+                Awarded(u32, _0, _1),
+                Rejected(u32, _0),
+                Burnt(_0),
+                Rollover(_0),
+                Deposit(_0),
+                PhantomData(core::marker::PhantomData<_2>),
             }
         }
         pub mod pallet_utility {
@@ -2485,19 +2023,9 @@ pub mod node_runtime {
                         core::marker::PhantomData<(_0,)>,
                         __runtime_types::frame_support::Never,
                     ),
-                    batch(
-                        Vec<__runtime_types::node_runtime::Call>,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    as_derivative(
-                        u16,
-                        __runtime_types::node_runtime::Call,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    batch_all(
-                        Vec<__runtime_types::node_runtime::Call>,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    batch(Vec<__runtime_types::node_runtime::Call>),
+                    as_derivative(u16, __runtime_types::node_runtime::Call),
+                    batch_all(Vec<__runtime_types::node_runtime::Call>),
                 }
                 pub enum Event {
                     BatchInterrupted(u32, __runtime_types::sp_runtime::DispatchError),
@@ -2520,7 +2048,6 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     vested_transfer(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -2528,7 +2055,6 @@ pub mod node_runtime {
                             u32,
                         >,
                         __runtime_types::pallet_vesting::VestingInfo<u128, u32>,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                     force_vested_transfer(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -2540,19 +2066,11 @@ pub mod node_runtime {
                             u32,
                         >,
                         __runtime_types::pallet_vesting::VestingInfo<u128, u32>,
-                        core::marker::PhantomData<(_0,)>,
                     ),
                 }
                 pub enum Event<_0> {
-                    VestingUpdated(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        u128,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
-                    VestingCompleted(
-                        __runtime_types::sp_core::crypto::AccountId32,
-                        core::marker::PhantomData<(_0,)>,
-                    ),
+                    VestingUpdated(__runtime_types::sp_core::crypto::AccountId32, u128),
+                    VestingCompleted(__runtime_types::sp_core::crypto::AccountId32),
                     __Ignore(
                         core::marker::PhantomData<_0>,
                         __runtime_types::frame_support::Never,
@@ -2697,11 +2215,11 @@ pub mod node_runtime {
             pub mod multiaddress {
                 use super::__runtime_types;
                 pub enum MultiAddress<_0, _1> {
-                    Id(_0, core::marker::PhantomData<(_1,)>),
-                    Index(_1, core::marker::PhantomData<(_0,)>),
-                    Raw(Vec<u8>, core::marker::PhantomData<(_0, _1)>),
-                    Address32([u8; 32usize], core::marker::PhantomData<(_0, _1)>),
-                    Address20([u8; 20usize], core::marker::PhantomData<(_0, _1)>),
+                    Id(_0),
+                    Index(_1),
+                    Raw(Vec<u8>),
+                    Address32([u8; 32usize]),
+                    Address20([u8; 20usize]),
                 }
             }
             pub enum DispatchError {
