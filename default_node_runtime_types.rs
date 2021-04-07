@@ -863,8 +863,12 @@ pub mod node_runtime {
                     Option<__runtime_types::sp_core::crypto::AccountId32>,
                     u32,
                 ),
-                execute(__runtime_types::node_runtime::Call, u32),
-                propose(u32, __runtime_types::node_runtime::Call, u32),
+                execute(std::boxed::Box<__runtime_types::node_runtime::Call>, u32),
+                propose(
+                    u32,
+                    std::boxed::Box<__runtime_types::node_runtime::Call>,
+                    u32,
+                ),
                 vote(__runtime_types::primitive_types::H256, u32, bool),
                 close(__runtime_types::primitive_types::H256, u32, u64, u32),
                 disapprove_proposal(__runtime_types::primitive_types::H256),
@@ -1481,7 +1485,7 @@ pub mod node_runtime {
                     core::marker::PhantomData<(_0,)>,
                     __runtime_types::frame_support::Never,
                 ),
-                buy_ticket(__runtime_types::node_runtime::Call),
+                buy_ticket(std::boxed::Box<__runtime_types::node_runtime::Call>),
                 set_calls(Vec<__runtime_types::node_runtime::Call>),
                 start_lottery(u128, u32, u32, bool),
                 stop_repeat,
@@ -1531,7 +1535,7 @@ pub mod node_runtime {
                 ),
                 as_multi_threshold_1(
                     Vec<__runtime_types::sp_core::crypto::AccountId32>,
-                    __runtime_types::node_runtime::Call,
+                    std::boxed::Box<__runtime_types::node_runtime::Call>,
                 ),
                 as_multi(
                     u16,
@@ -1596,7 +1600,7 @@ pub mod node_runtime {
                     proxy(
                         __runtime_types::sp_core::crypto::AccountId32,
                         Option<__runtime_types::node_runtime::ProxyType>,
-                        __runtime_types::node_runtime::Call,
+                        std::boxed::Box<__runtime_types::node_runtime::Call>,
                     ),
                     add_proxy(
                         __runtime_types::sp_core::crypto::AccountId32,
@@ -1633,7 +1637,7 @@ pub mod node_runtime {
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::sp_core::crypto::AccountId32,
                         Option<__runtime_types::node_runtime::ProxyType>,
-                        __runtime_types::node_runtime::Call,
+                        std::boxed::Box<__runtime_types::node_runtime::Call>,
                     ),
                 }
                 pub enum Event<_0> {
@@ -1674,7 +1678,7 @@ pub mod node_runtime {
                 ),
                 as_recovered(
                     __runtime_types::sp_core::crypto::AccountId32,
-                    __runtime_types::node_runtime::Call,
+                    std::boxed::Box<__runtime_types::node_runtime::Call>,
                 ),
                 set_recovered(
                     __runtime_types::sp_core::crypto::AccountId32,
@@ -1711,7 +1715,7 @@ pub mod node_runtime {
                     u32,
                     Option<(u32, u32)>,
                     u8,
-                    __runtime_types::node_runtime::Call,
+                    std::boxed::Box<__runtime_types::node_runtime::Call>,
                 ),
                 cancel(u32, u32),
                 schedule_named(
@@ -1719,21 +1723,21 @@ pub mod node_runtime {
                     u32,
                     Option<(u32, u32)>,
                     u8,
-                    __runtime_types::node_runtime::Call,
+                    std::boxed::Box<__runtime_types::node_runtime::Call>,
                 ),
                 cancel_named(Vec<u8>),
                 schedule_after(
                     u32,
                     Option<(u32, u32)>,
                     u8,
-                    __runtime_types::node_runtime::Call,
+                    std::boxed::Box<__runtime_types::node_runtime::Call>,
                 ),
                 schedule_named_after(
                     Vec<u8>,
                     u32,
                     Option<(u32, u32)>,
                     u8,
-                    __runtime_types::node_runtime::Call,
+                    std::boxed::Box<__runtime_types::node_runtime::Call>,
                 ),
             }
             pub enum RawEvent<_0> {
@@ -1919,8 +1923,11 @@ pub mod node_runtime {
                         core::marker::PhantomData<(_0,)>,
                         __runtime_types::frame_support::Never,
                     ),
-                    sudo(__runtime_types::node_runtime::Call),
-                    sudo_unchecked_weight(__runtime_types::node_runtime::Call, u64),
+                    sudo(std::boxed::Box<__runtime_types::node_runtime::Call>),
+                    sudo_unchecked_weight(
+                        std::boxed::Box<__runtime_types::node_runtime::Call>,
+                        u64,
+                    ),
                     set_key(
                         __runtime_types::sp_runtime::multiaddress::MultiAddress<
                             __runtime_types::sp_core::crypto::AccountId32,
@@ -1932,7 +1939,7 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        __runtime_types::node_runtime::Call,
+                        std::boxed::Box<__runtime_types::node_runtime::Call>,
                     ),
                 }
                 pub enum Event<_0> {
@@ -2024,7 +2031,7 @@ pub mod node_runtime {
                         __runtime_types::frame_support::Never,
                     ),
                     batch(Vec<__runtime_types::node_runtime::Call>),
-                    as_derivative(u16, __runtime_types::node_runtime::Call),
+                    as_derivative(u16, std::boxed::Box<__runtime_types::node_runtime::Call>),
                     batch_all(Vec<__runtime_types::node_runtime::Call>),
                 }
                 pub enum Event {

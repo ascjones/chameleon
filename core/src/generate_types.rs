@@ -276,11 +276,17 @@ impl<'a> ModuleType<'a> {
                     let ty = self
                         .type_gen
                         .resolve_type_path(field.ty().id(), type_params);
-                    (name, ty)
+                    (name, ty, field.type_name())
                 })
                 .collect::<Vec<_>>();
 
-            let mut fields_tokens = fields.iter().map(|(name, ty)| {
+            let mut fields_tokens = fields.iter().map(|(name, ty, ty_name)| {
+                // todo [AJ] remove this hack once scale-info can represent Box somehow
+                let ty = if ty_name.contains("Box<") {
+                    quote! { std::boxed::Box<#ty>}
+                } else {
+                    quote! { #ty }
+                };
                 if is_struct {
                     quote! { pub #name: #ty }
                 } else {
@@ -289,7 +295,7 @@ impl<'a> ModuleType<'a> {
             }).collect::<Vec<_>>();
 
             if is_struct {
-                let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty) |ty));
+                let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty, _) |ty));
 
                 if !unused_params.is_empty() {
                     fields_tokens.push(quote! {
@@ -305,10 +311,17 @@ impl<'a> ModuleType<'a> {
             }
         } else if unnamed {
             let type_paths = fields.iter().map(|field| {
-                self.type_gen
-                    .resolve_type_path(field.ty().id(), type_params)
+                let ty =
+                    self.type_gen
+                        .resolve_type_path(field.ty().id(), type_params);
+                (ty, field.type_name())
             }).collect::<Vec<_>>();
-            let mut fields_tokens = type_paths.iter().map(|ty| {
+            let mut fields_tokens = type_paths.iter().map(|(ty, type_name)| {
+                let ty = if type_name.contains("Box<") {
+                    quote! { std::boxed::Box<#ty>}
+                } else {
+                    quote! { #ty }
+                };
                 if is_struct {
                     quote! { pub #ty }
                 } else {
@@ -317,7 +330,7 @@ impl<'a> ModuleType<'a> {
             }).collect::<Vec<_>>();
 
             if is_struct {
-                let unused_params = unused_type_params(type_params, type_paths.iter());
+                let unused_params = unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty ));
 
                 if !unused_params.is_empty() {
                     fields_tokens.push( quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> })
