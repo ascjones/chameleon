@@ -1,17 +1,15 @@
-use generate_types::TypeGenerator;
 use proc_macro2::TokenStream as TokenStream2;
 use scale::Decode;
 use std::{
     fs,
-    io::{
-        self,
-        Read,
-    },
+    io::{self, Read},
     path,
 };
 
 mod generate_runtime;
 mod generate_types;
+
+pub use generate_types::TypeGenerator;
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
@@ -39,10 +37,7 @@ where
 
 #[cfg(test)]
 mod tests {
-    use std::{
-        env,
-        path,
-    };
+    use std::{env, path};
 
     #[test]
     fn generate_runtime_types() {
@@ -53,7 +48,7 @@ mod tests {
         // curl -sX POST -H "Content-Type: application/json" --data '{"jsonrpc":"2.0","method":"state_getMetadata", "id": 1}' localhost:9933 \
         // | jq .result \
         // | cut -d '"' -f 2 \
-        // | xxd -r -p > ./node-runtime.scale
+        // | xxd -r -p > ./core/node-runtime.scale
         //
         //
         let path = root_path.join("node-runtime.scale");
