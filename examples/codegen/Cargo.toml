@@ -1,5 +1,5 @@
 [package]
-name = "subscribe_events"
+name = "codegen"
 version = "0.1.0"
 authors = ["Andrew Jones <ascjones@gmail.com>"]
 edition = "2018"

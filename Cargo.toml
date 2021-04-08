@@ -4,6 +4,6 @@ members = [
     "cli",
     "macro",
 ]
-#exclude = [
-#    "examples/",
-#]
+exclude = [
+    "examples/",
+]
