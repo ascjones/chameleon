@@ -97,11 +97,18 @@ impl<'a> TypeGenerator<'a> {
             return TypePath::Parameter(parent_type_param.clone());
         }
 
-        let ty = self
-            .type_registry
-            .resolve(id)
-            .expect(&format!("No type with id {} found", id))
-            .clone();
+        let resolve_type = |id| {
+            self
+                .type_registry
+                .resolve(id)
+                .expect(&format!("No type with id {} found", id))
+                .clone()
+        };
+
+        let mut ty = resolve_type(id);
+        if ty.path().ident() == Some("Cow".to_string()) {
+            ty = resolve_type(ty.type_params()[0].id())
+        }
 
         let params_type_ids = match ty.type_def() {
             TypeDef::Array(arr) => vec![arr.type_param().id()],
@@ -143,6 +150,9 @@ impl<'a> ToTokens for Module<'a> {
         tokens.extend(quote! {
             pub mod #name {
                 use super::#root_mod;
+                // todo: [AJ] maybe make a prelude to make no_std compatible
+                use std::collections::BTreeMap;
+
                 #( #modules )*
                 #( #types )*
             }
@@ -278,9 +288,7 @@ impl<'a> ModuleType<'a> {
                 .map(|field| {
                     let name =
                         format_ident!("{}", field.name().expect("named field without a name"));
-                    let ty = self
-                        .type_gen
-                        .resolve_type_path(field.ty().id(), type_params);
+                    let ty = self.type_gen.resolve_type_path(field.ty().id(), type_params);
                     (name, ty, field.type_name())
                 })
                 .collect::<Vec<_>>();
@@ -322,9 +330,7 @@ impl<'a> ModuleType<'a> {
             let type_paths = fields
                 .iter()
                 .map(|field| {
-                    let ty = self
-                        .type_gen
-                        .resolve_type_path(field.ty().id(), type_params);
+                    let ty = self.type_gen.resolve_type_path(field.ty().id(), type_params);
                     (ty, field.type_name())
                 })
                 .collect::<Vec<_>>();
