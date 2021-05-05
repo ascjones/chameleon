@@ -98,8 +98,7 @@ impl<'a> TypeGenerator<'a> {
         }
 
         let resolve_type = |id| {
-            self
-                .type_registry
+            self.type_registry
                 .resolve(id)
                 .expect(&format!("No type with id {} found", id))
                 .clone()
@@ -224,7 +223,7 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
         match self.ty.type_def() {
             TypeDef::Composite(composite) => {
                 let type_name = type_name.expect("structs should have a name");
-                let fields = self.composite_fields(composite.fields(), &type_params, true);
+                let (fields, _) = self.composite_fields(composite.fields(), &type_params, true);
                 let ty_toks = quote! {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct #type_name #fields
@@ -233,17 +232,34 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
             }
             TypeDef::Variant(variant) => {
                 let type_name = type_name.expect("variants should have a name");
-                let variants = variant.variants().iter().map(|v| {
+                let mut variants = Vec::new();
+                let mut used_type_params = HashSet::new();
+                let type_params_set: HashSet<_> = type_params.iter().cloned().collect();
+
+                for v in variant.variants() {
                     let variant_name = format_ident!("{}", v.name());
-                    let fields = if v.fields().is_empty() {
-                        quote! {}
+                    let (fields, unused_type_params) = if v.fields().is_empty() {
+                        (quote! {}, Vec::new())
                     } else {
                         self.composite_fields(v.fields(), &type_params, false)
                     };
-                    quote! {
-                        #variant_name #fields
+                    variants.push(quote! { #variant_name #fields });
+                    for used_param in
+                        type_params_set.difference(&unused_type_params.iter().cloned().collect())
+                    {
+                        used_type_params.insert(used_param.clone());
                     }
-                });
+                }
+
+                let unused_type_params = type_params_set
+                    .difference(&used_type_params)
+                    .collect::<Vec<_>>();
+                if !unused_type_params.is_empty() {
+                    variants.push(quote! {
+                        __Ignore(core::marker::PhantomData<(#( #unused_type_params, )*)>)
+                    })
+                }
+
                 let ty_toks = quote! {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub enum #type_name {
@@ -260,10 +276,10 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
 impl<'a> ModuleType<'a> {
     fn composite_fields(
         &self,
-        fields: &[Field<PortableForm>],
-        type_params: &[TypeParameter],
+        fields: &'a [Field<PortableForm>],
+        type_params: &'a [TypeParameter],
         is_struct: bool,
-    ) -> TokenStream2 {
+    ) -> (TokenStream2, Vec<TypeParameter>) {
         let named = fields.iter().all(|f| f.name().is_some());
         let unnamed = fields.iter().all(|f| f.name().is_none());
 
@@ -288,7 +304,9 @@ impl<'a> ModuleType<'a> {
                 .map(|field| {
                     let name =
                         format_ident!("{}", field.name().expect("named field without a name"));
-                    let ty = self.type_gen.resolve_type_path(field.ty().id(), type_params);
+                    let ty = self
+                        .type_gen
+                        .resolve_type_path(field.ty().id(), type_params);
                     (name, ty, field.type_name())
                 })
                 .collect::<Vec<_>>();
@@ -310,10 +328,9 @@ impl<'a> ModuleType<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            if is_struct {
-                let unused_params =
-                    unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
+            let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
 
+            if is_struct {
                 if !unused_params.is_empty() {
                     fields_tokens.push(quote! {
                         pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
@@ -321,16 +338,19 @@ impl<'a> ModuleType<'a> {
                 }
             }
 
-            quote! {
+            let fields = quote! {
                 {
                     #( #fields_tokens, )*
                 }
-            }
+            };
+            (fields, unused_params)
         } else if unnamed {
             let type_paths = fields
                 .iter()
                 .map(|field| {
-                    let ty = self.type_gen.resolve_type_path(field.ty().id(), type_params);
+                    let ty = self
+                        .type_gen
+                        .resolve_type_path(field.ty().id(), type_params);
                     (ty, field.type_name())
                 })
                 .collect::<Vec<_>>();
@@ -350,10 +370,10 @@ impl<'a> ModuleType<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            if is_struct {
-                let unused_params =
-                    unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
+            let unused_params =
+                unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
 
+            if is_struct {
                 if !unused_params.is_empty() {
                     fields_tokens
                         .push(quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> })
@@ -361,12 +381,14 @@ impl<'a> ModuleType<'a> {
             }
 
             let fields = quote! { ( #( #fields_tokens, )* ) };
-            if is_struct {
+            let fields_tokens = if is_struct {
                 // add a semicolon for tuple structs
                 quote! { #fields; }
             } else {
                 fields
-            }
+            };
+
+            (fields_tokens, unused_params)
         } else {
             panic!("Fields must be either all named or all unnamed")
         }

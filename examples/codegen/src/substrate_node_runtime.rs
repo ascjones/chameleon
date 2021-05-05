@@ -1808,6 +1808,7 @@ pub mod node_runtime {
                     kill_storage(Vec<Vec<u8>>),
                     kill_prefix(Vec<u8>, u32),
                     remark_with_event(Vec<u8>),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -2488,6 +2489,7 @@ pub mod node_runtime {
                         >,
                         u64,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0, _1)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0, _1> {
@@ -2558,6 +2560,7 @@ pub mod node_runtime {
                         u64,
                     ),
                     AssetStatusChanged(u32),
+                    __Ignore(core::marker::PhantomData<(_0, _1)>),
                 }
             }
             pub mod types {
@@ -2618,7 +2621,9 @@ pub mod node_runtime {
                 use super::__runtime_types;
                 use std::collections::BTreeMap;
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-                pub enum Call<_0> {}
+                pub enum Call<_0> {
+                    __Ignore(core::marker::PhantomData<(_0,)>),
+                }
             }
         }
         pub mod pallet_authorship {
@@ -2630,6 +2635,7 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call<_0> {
                     set_uncles(Vec<__runtime_types::sp_runtime::generic::header::Header>),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -2677,6 +2683,7 @@ pub mod node_runtime {
                     plan_config_change(
                         __runtime_types::sp_consensus_babe::digests::NextConfigDescriptor,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -2731,6 +2738,7 @@ pub mod node_runtime {
                         >,
                         u128,
                     ),
+                    __Ignore(core::marker::PhantomData<(_1, _0)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0, _1> {
@@ -2766,6 +2774,7 @@ pub mod node_runtime {
                         u128,
                         __runtime_types::frame_support::traits::tokens::misc::BalanceStatus,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0, _1)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -2847,6 +2856,7 @@ pub mod node_runtime {
                 claim_bounty(u32),
                 close_bounty(u32),
                 extend_bounty_expiry(u32, Vec<u8>),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -2894,6 +2904,7 @@ pub mod node_runtime {
                 vote(__runtime_types::primitive_types::H256, u32, bool),
                 close(__runtime_types::primitive_types::H256, u32, u64, u32),
                 disapprove_proposal(__runtime_types::primitive_types::H256),
+                __Ignore(core::marker::PhantomData<(_1, _0)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0, _1> {
@@ -2925,6 +2936,7 @@ pub mod node_runtime {
                 Executed(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
                 MemberExecuted(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
                 Closed(_0, u32, u32),
+                __Ignore(core::marker::PhantomData<(_2,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum RawOrigin<_0, _1> {
@@ -3029,6 +3041,7 @@ pub mod node_runtime {
                     ScheduleUpdated(u32),
                     ContractEmitted(__runtime_types::sp_core::crypto::AccountId32, Vec<u8>),
                     CodeRemoved(__runtime_types::primitive_types::H256),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
             pub mod schedule {
@@ -3185,6 +3198,7 @@ pub mod node_runtime {
                             __runtime_types::sp_runtime::traits::BlakeTwo256,
                         >,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub struct DeletedContract {
@@ -3442,7 +3456,7 @@ pub mod node_runtime {
                 use std::collections::BTreeMap;
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call<_0> {
-                    submit_unsigned (__runtime_types :: pallet_election_provider_multi_phase :: RawSolution < __runtime_types :: node_runtime :: NposCompactSolution16 > , __runtime_types :: pallet_election_provider_multi_phase :: SolutionOrSnapshotSize ,) , }
+                    submit_unsigned (__runtime_types :: pallet_election_provider_multi_phase :: RawSolution < __runtime_types :: node_runtime :: NposCompactSolution16 > , __runtime_types :: pallet_election_provider_multi_phase :: SolutionOrSnapshotSize ,) , __Ignore (core :: marker :: PhantomData < (_0 ,) >) , }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
                     __Ignore(
@@ -3468,6 +3482,7 @@ pub mod node_runtime {
                     Slashed(__runtime_types::sp_core::crypto::AccountId32),
                     SignedPhaseStarted(u32),
                     UnsignedPhaseStarted(u32),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -3606,6 +3621,7 @@ pub mod node_runtime {
                     retract_bid(u128, u32),
                     set_target(__runtime_types::sp_arithmetic::per_things::Perquintill),
                     thaw(u32),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -3638,6 +3654,7 @@ pub mod node_runtime {
                         u128,
                         u128,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub struct GiltBid<_0, _1> {
@@ -3666,6 +3683,7 @@ pub mod node_runtime {
                     __runtime_types::sp_session::MembershipProof,
                 ),
                 note_stalled(u32, u32),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -3807,6 +3825,7 @@ pub mod node_runtime {
                         __runtime_types::sp_core::crypto::AccountId32,
                         u128,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -3879,6 +3898,7 @@ pub mod node_runtime {
                     __runtime_types::pallet_im_online::Heartbeat<u32>,
                     __runtime_types::pallet_im_online::sr25519::app_sr25519::Signature,
                 ),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -3917,6 +3937,7 @@ pub mod node_runtime {
                     free(u32),
                     force_transfer(__runtime_types::sp_core::crypto::AccountId32, u32, bool),
                     freeze(u32),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -3935,6 +3956,7 @@ pub mod node_runtime {
                     IndexAssigned(__runtime_types::sp_core::crypto::AccountId32, u32),
                     IndexFreed(u32),
                     IndexFrozen(u32, __runtime_types::sp_core::crypto::AccountId32),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
         }
@@ -4046,6 +4068,7 @@ pub mod node_runtime {
                     __runtime_types::pallet_multisig::Timepoint<u32>,
                     [u8; 32usize],
                 ),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -4098,7 +4121,9 @@ pub mod node_runtime {
             use super::__runtime_types;
             use std::collections::BTreeMap;
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-            pub enum Call<_0> {}
+            pub enum Call<_0> {
+                __Ignore(core::marker::PhantomData<(_0,)>),
+            }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Event {
                 Offence([u8; 16usize], Vec<u8>),
@@ -4184,6 +4209,7 @@ pub mod node_runtime {
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -4203,7 +4229,9 @@ pub mod node_runtime {
             use super::__runtime_types;
             use std::collections::BTreeMap;
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-            pub enum Call<_0> {}
+            pub enum Call<_0> {
+                __Ignore(core::marker::PhantomData<(_0,)>),
+            }
         }
         pub mod pallet_recovery {
             use super::__runtime_types;
@@ -4309,6 +4337,7 @@ pub mod node_runtime {
                     u8,
                     std::boxed::Box<__runtime_types::node_runtime::Call>,
                 ),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -4460,6 +4489,7 @@ pub mod node_runtime {
                 NewMaxMembers(u32),
                 Unfounded(_0),
                 Deposit(_1),
+                __Ignore(core::marker::PhantomData<(_2,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Vote {
@@ -4693,6 +4723,7 @@ pub mod node_runtime {
                         >,
                         std::boxed::Box<__runtime_types::node_runtime::Call>,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -4707,6 +4738,7 @@ pub mod node_runtime {
                     Sudid(Result<(), __runtime_types::sp_runtime::DispatchError>),
                     KeyChanged(__runtime_types::sp_core::crypto::AccountId32),
                     SudoAsDone(Result<(), __runtime_types::sp_runtime::DispatchError>),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
         }
@@ -4719,6 +4751,7 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call<_0> {
                     set(u64),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
         }
@@ -4733,6 +4766,7 @@ pub mod node_runtime {
                 tip(__runtime_types::primitive_types::H256, u128),
                 close_tip(__runtime_types::primitive_types::H256),
                 slash_tip(__runtime_types::primitive_types::H256),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -4791,6 +4825,7 @@ pub mod node_runtime {
                 ),
                 reject_proposal(u32),
                 approve_proposal(u32),
+                __Ignore(core::marker::PhantomData<(_1, _0)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct DefaultInstance {}
@@ -4820,6 +4855,7 @@ pub mod node_runtime {
                 Burnt(_0),
                 Rollover(_0),
                 Deposit(_0),
+                __Ignore(core::marker::PhantomData<(_2,)>),
             }
         }
         pub mod pallet_utility {
@@ -4833,6 +4869,7 @@ pub mod node_runtime {
                     batch(Vec<__runtime_types::node_runtime::Call>),
                     as_derivative(u16, std::boxed::Box<__runtime_types::node_runtime::Call>),
                     batch_all(Vec<__runtime_types::node_runtime::Call>),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Event {
@@ -4889,6 +4926,7 @@ pub mod node_runtime {
                 pub enum Event<_0> {
                     VestingUpdated(__runtime_types::sp_core::crypto::AccountId32, u128),
                     VestingCompleted(__runtime_types::sp_core::crypto::AccountId32),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
