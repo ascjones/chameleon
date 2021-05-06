@@ -4,7 +4,7 @@ fn main() -> Result<(), Error> {
     // todo: accept these as arguments from command line and/or stdin
     let mod_name = "node_runtime";
     let path = {
-        let root = std::env::var("CARGO_MANIFEST_DIR").unwrap_or(".".into());
+        let root = std::env::var("CARGO_MANIFEST_DIR").unwrap_or_else(|_| ".".into());
         let root_path = std::path::Path::new(&root);
         root_path.join("../core/node-runtime.scale")
     };

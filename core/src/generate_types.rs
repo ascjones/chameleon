@@ -71,7 +71,7 @@ impl<'a> TypeGenerator<'a> {
         let child_mod = module
             .children
             .entry(mod_ident.clone())
-            .or_insert(Module::new(mod_ident, root_mod_ident.clone()));
+            .or_insert_with(||Module::new(mod_ident, root_mod_ident.clone()));
 
         if path.len() == 1 {
             child_mod
@@ -100,7 +100,7 @@ impl<'a> TypeGenerator<'a> {
         let resolve_type = |id| {
             self.type_registry
                 .resolve(id)
-                .expect(&format!("No type with id {} found", id))
+                .unwrap_or_else(|| panic!("No type with id {} found", id))
                 .clone()
         };
 
@@ -339,12 +339,10 @@ impl<'a> ModuleType<'a> {
 
             let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
 
-            if is_struct {
-                if !unused_params.is_empty() {
-                    fields_tokens.push(quote! {
-                        pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
-                    })
-                }
+            if is_struct && !unused_params.is_empty() {
+                fields_tokens.push(quote! {
+                    pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
+                })
             }
 
             let fields = quote! {
@@ -378,11 +376,9 @@ impl<'a> ModuleType<'a> {
             let unused_params =
                 unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
 
-            if is_struct {
-                if !unused_params.is_empty() {
-                    fields_tokens
-                        .push(quote! { pub core::marker::PhantomData<(#( #unused_params ),*)> })
-                }
+            if is_struct && !unused_params.is_empty() {
+                fields_tokens
+                    .push(quote! { pub core::marker::PhantomData<(#( #unused_params ),*)> })
             }
 
             let fields = quote! { ( #( #fields_tokens, )* ) };
@@ -473,20 +469,12 @@ impl TypePathType {
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(_) => {
-                let type_param = self
-                    .params
-                    .iter()
-                    .next()
-                    .expect("a sequence should have a single type parameter");
+                let type_param = &self.params[0];
                 let type_path = syn::parse_quote! { Vec<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type = self
-                    .params
-                    .iter()
-                    .next()
-                    .expect("an array should have a single type parameter");
+                let array_type = &self.params[0];
                 let array_len = array.len() as usize;
                 let array = syn::parse_quote! { [#array_type; #array_len] };
                 syn::Type::Array(array)
@@ -528,11 +516,7 @@ impl TypePathType {
             TypeDef::Compact(_) => {
                 // todo: change the return type of this method to include info that it is compact
                 // and should be annotated with #[compact] for fields
-                let compact_type = self
-                    .params
-                    .iter()
-                    .next()
-                    .expect("a compact type should have a single type parameter");
+                let compact_type = &self.params[0];
                 syn::Type::Path(syn::parse_quote! ( #compact_type ))
             }
         }
