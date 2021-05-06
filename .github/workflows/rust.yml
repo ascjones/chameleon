@@ -1,0 +1,49 @@
+name: Rust
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: setup
+      uses: actions-rs/toolchain@v1
+      with:
+          profile: minimal
+          toolchain: nightly
+          override: true
+          components: rustfmt, clippy
+          target: wasm32-unknown-unknown
+
+    - name: fmt
+      run: |
+        cargo fmt --version
+        cargo fmt --all -- --check
+
+    - name: clippy
+      run: |
+        cargo clippy --version
+        cargo clippy --all -- -D warnings
+
+    - name: build
+      run: |
+        cargo --version --verbose
+        cargo build --workspace
+
+    - name: test
+      run: |
+        cargo test --workspace
+    
+    - name: check-codegen
+      run: |
+        cargo check --manifest-path examples/codegen/Cargo.toml
+
+   
