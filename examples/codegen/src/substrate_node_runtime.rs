@@ -1836,6 +1836,7 @@ pub mod node_runtime {
                         __runtime_types::sp_core::crypto::AccountId32,
                         __runtime_types::primitive_types::H256,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -2489,7 +2490,7 @@ pub mod node_runtime {
                         >,
                         u64,
                     ),
-                    __Ignore(core::marker::PhantomData<(_0, _1)>),
+                    __Ignore(core::marker::PhantomData<(_1, _0)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0, _1> {
@@ -2738,7 +2739,7 @@ pub mod node_runtime {
                         >,
                         u128,
                     ),
-                    __Ignore(core::marker::PhantomData<(_1, _0)>),
+                    __Ignore(core::marker::PhantomData<(_0, _1)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0, _1> {
@@ -2774,7 +2775,7 @@ pub mod node_runtime {
                         u128,
                         __runtime_types::frame_support::traits::tokens::misc::BalanceStatus,
                     ),
-                    __Ignore(core::marker::PhantomData<(_0, _1)>),
+                    __Ignore(core::marker::PhantomData<(_1, _0)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -2904,7 +2905,7 @@ pub mod node_runtime {
                 vote(__runtime_types::primitive_types::H256, u32, bool),
                 close(__runtime_types::primitive_types::H256, u32, u64, u32),
                 disapprove_proposal(__runtime_types::primitive_types::H256),
-                __Ignore(core::marker::PhantomData<(_1, _0)>),
+                __Ignore(core::marker::PhantomData<(_0, _1)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0, _1> {
@@ -3365,6 +3366,7 @@ pub mod node_runtime {
                 enact_proposal(__runtime_types::primitive_types::H256, u32),
                 blacklist(__runtime_types::primitive_types::H256, Option<u32>),
                 cancel_proposal(u32),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -3540,6 +3542,7 @@ pub mod node_runtime {
                         bool,
                     ),
                     clean_defunct_voters(u32, u32),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -3574,6 +3577,7 @@ pub mod node_runtime {
                     Renounced(__runtime_types::sp_core::crypto::AccountId32),
                     CandidateSlashed(__runtime_types::sp_core::crypto::AccountId32, u128),
                     SeatHolderSlashed(__runtime_types::sp_core::crypto::AccountId32, u128),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -3777,6 +3781,7 @@ pub mod node_runtime {
                         >,
                     ),
                     quit_sub,
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -3969,6 +3974,7 @@ pub mod node_runtime {
                 set_calls(Vec<__runtime_types::node_runtime::Call>),
                 start_lottery(u128, u32, u32, bool),
                 stop_repeat,
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -4016,6 +4022,7 @@ pub mod node_runtime {
                 change_key(__runtime_types::sp_core::crypto::AccountId32),
                 set_prime(__runtime_types::sp_core::crypto::AccountId32),
                 clear_prime,
+                __Ignore(core::marker::PhantomData<(_1, _0)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0, _1> {
@@ -4036,6 +4043,7 @@ pub mod node_runtime {
                 MembersReset,
                 KeyChanged,
                 Dummy(core::marker::PhantomData<(_0, _1)>),
+                __Ignore(core::marker::PhantomData<(_2,)>),
             }
         }
         pub mod pallet_multisig {
@@ -4179,6 +4187,7 @@ pub mod node_runtime {
                         Option<__runtime_types::node_runtime::ProxyType>,
                         std::boxed::Box<__runtime_types::node_runtime::Call>,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {
@@ -4262,6 +4271,7 @@ pub mod node_runtime {
                 close_recovery(__runtime_types::sp_core::crypto::AccountId32),
                 remove_recovery,
                 cancel_recovered(__runtime_types::sp_core::crypto::AccountId32),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -4382,6 +4392,7 @@ pub mod node_runtime {
             pub enum Call<_0> {
                 set_keys(__runtime_types::node_runtime::SessionKeys, Vec<u8>),
                 purge_keys,
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Error<_0> {
@@ -4437,6 +4448,7 @@ pub mod node_runtime {
                     __runtime_types::pallet_society::Judgement,
                 ),
                 set_max_members(u32),
+                __Ignore(core::marker::PhantomData<(_0, _1)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct DefaultInstance {}
@@ -4584,6 +4596,7 @@ pub mod node_runtime {
                         >,
                     >,
                 ),
+                __Ignore(core::marker::PhantomData<(_0,)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct EraRewardPoints<_0> {
@@ -4825,7 +4838,7 @@ pub mod node_runtime {
                 ),
                 reject_proposal(u32),
                 approve_proposal(u32),
-                __Ignore(core::marker::PhantomData<(_1, _0)>),
+                __Ignore(core::marker::PhantomData<(_0, _1)>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct DefaultInstance {}
@@ -4911,6 +4924,7 @@ pub mod node_runtime {
                         >,
                         __runtime_types::pallet_vesting::VestingInfo<u128, u32>,
                     ),
+                    __Ignore(core::marker::PhantomData<(_0,)>),
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error<_0> {

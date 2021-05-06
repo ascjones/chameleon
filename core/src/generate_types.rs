@@ -239,14 +239,16 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
                 for v in variant.variants() {
                     let variant_name = format_ident!("{}", v.name());
                     let (fields, unused_type_params) = if v.fields().is_empty() {
-                        (quote! {}, Vec::new())
+                        let unused = type_params_set.iter().cloned().collect::<Vec<_>>();
+                        (quote! {}, unused)
                     } else {
                         self.composite_fields(v.fields(), &type_params, false)
                     };
                     variants.push(quote! { #variant_name #fields });
-                    for used_param in
-                        type_params_set.difference(&unused_type_params.iter().cloned().collect())
-                    {
+                    let unused_params_set = unused_type_params.iter().cloned().collect();
+                    let used_params = type_params_set.difference(&unused_params_set);
+
+                    for used_param in used_params {
                         used_type_params.insert(used_param.clone());
                     }
                 }
