@@ -71,7 +71,7 @@ impl<'a> TypeGenerator<'a> {
         let child_mod = module
             .children
             .entry(mod_ident.clone())
-            .or_insert_with(||Module::new(mod_ident, root_mod_ident.clone()));
+            .or_insert_with(|| Module::new(mod_ident, root_mod_ident.clone()));
 
         if path.len() == 1 {
             child_mod
