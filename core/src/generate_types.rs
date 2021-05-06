@@ -71,7 +71,7 @@ impl<'a> TypeGenerator<'a> {
         let child_mod = module
             .children
             .entry(mod_ident.clone())
-            .or_insert(Module::new(mod_ident, root_mod_ident.clone()));
+            .or_insert_with(|| Module::new(mod_ident, root_mod_ident.clone()));
 
         if path.len() == 1 {
             child_mod
@@ -97,11 +97,17 @@ impl<'a> TypeGenerator<'a> {
             return TypePath::Parameter(parent_type_param.clone());
         }
 
-        let ty = self
-            .type_registry
-            .resolve(id)
-            .expect(&format!("No type with id {} found", id))
-            .clone();
+        let resolve_type = |id| {
+            self.type_registry
+                .resolve(id)
+                .unwrap_or_else(|| panic!("No type with id {} found", id))
+                .clone()
+        };
+
+        let mut ty = resolve_type(id);
+        if ty.path().ident() == Some("Cow".to_string()) {
+            ty = resolve_type(ty.type_params()[0].id())
+        }
 
         let params_type_ids = match ty.type_def() {
             TypeDef::Array(arr) => vec![arr.type_param().id()],
@@ -143,6 +149,7 @@ impl<'a> ToTokens for Module<'a> {
         tokens.extend(quote! {
             pub mod #name {
                 use super::#root_mod;
+
                 #( #modules )*
                 #( #types )*
             }
@@ -214,7 +221,7 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
         match self.ty.type_def() {
             TypeDef::Composite(composite) => {
                 let type_name = type_name.expect("structs should have a name");
-                let fields = self.composite_fields(composite.fields(), &type_params, true);
+                let (fields, _) = self.composite_fields(composite.fields(), &type_params, true);
                 let ty_toks = quote! {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct #type_name #fields
@@ -223,17 +230,36 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
             }
             TypeDef::Variant(variant) => {
                 let type_name = type_name.expect("variants should have a name");
-                let variants = variant.variants().iter().map(|v| {
+                let mut variants = Vec::new();
+                let mut used_type_params = HashSet::new();
+                let type_params_set: HashSet<_> = type_params.iter().cloned().collect();
+
+                for v in variant.variants() {
                     let variant_name = format_ident!("{}", v.name());
-                    let fields = if v.fields().is_empty() {
-                        quote! {}
+                    let (fields, unused_type_params) = if v.fields().is_empty() {
+                        let unused = type_params_set.iter().cloned().collect::<Vec<_>>();
+                        (quote! {}, unused)
                     } else {
                         self.composite_fields(v.fields(), &type_params, false)
                     };
-                    quote! {
-                        #variant_name #fields
+                    variants.push(quote! { #variant_name #fields });
+                    let unused_params_set = unused_type_params.iter().cloned().collect();
+                    let used_params = type_params_set.difference(&unused_params_set);
+
+                    for used_param in used_params {
+                        used_type_params.insert(used_param.clone());
                     }
-                });
+                }
+
+                let unused_type_params = type_params_set
+                    .difference(&used_type_params)
+                    .collect::<Vec<_>>();
+                if !unused_type_params.is_empty() {
+                    variants.push(quote! {
+                        __Ignore(core::marker::PhantomData<(#( #unused_type_params, )*)>)
+                    })
+                }
+
                 let ty_toks = quote! {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub enum #type_name {
@@ -250,10 +276,10 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
 impl<'a> ModuleType<'a> {
     fn composite_fields(
         &self,
-        fields: &[Field<PortableForm>],
-        type_params: &[TypeParameter],
+        fields: &'a [Field<PortableForm>],
+        type_params: &'a [TypeParameter],
         is_struct: bool,
-    ) -> TokenStream2 {
+    ) -> (TokenStream2, Vec<TypeParameter>) {
         let named = fields.iter().all(|f| f.name().is_some());
         let unnamed = fields.iter().all(|f| f.name().is_none());
 
@@ -266,11 +292,25 @@ impl<'a> ModuleType<'a> {
                 ty.parent_type_params(&mut used_type_params)
             }
             let type_params_set: HashSet<_> = type_params.iter().cloned().collect();
-            type_params_set
+            let mut unused = type_params_set
                 .difference(&used_type_params)
                 .cloned()
-                .collect()
+                .collect::<Vec<_>>();
+            unused.sort();
+            unused
         }
+
+        let ty_toks = |ty_name: &str, ty_path: &TypePath| {
+            if ty_name.contains("Box<") {
+                // todo [AJ] remove this hack once scale-info can represent Box somehow
+                quote! { std::boxed::Box<#ty_path> }
+            } else if ty_name.contains("BTreeMap<") {
+                // todo [AJ] remove this hack and add namespaces or import prelude types
+                quote! { std::collections::#ty_path }
+            } else {
+                quote! { #ty_path }
+            }
+        };
 
         if named {
             let fields = fields
@@ -288,12 +328,7 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = fields
                 .iter()
                 .map(|(name, ty, ty_name)| {
-                    // todo [AJ] remove this hack once scale-info can represent Box somehow
-                    let ty = if ty_name.contains("Box<") {
-                        quote! { std::boxed::Box<#ty>}
-                    } else {
-                        quote! { #ty }
-                    };
+                    let ty = ty_toks(ty_name, ty);
                     if is_struct {
                         quote! { pub #name: #ty }
                     } else {
@@ -302,22 +337,20 @@ impl<'a> ModuleType<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            if is_struct {
-                let unused_params =
-                    unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
+            let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
 
-                if !unused_params.is_empty() {
-                    fields_tokens.push(quote! {
-                        pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
-                    })
-                }
+            if is_struct && !unused_params.is_empty() {
+                fields_tokens.push(quote! {
+                    pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
+                })
             }
 
-            quote! {
+            let fields = quote! {
                 {
                     #( #fields_tokens, )*
                 }
-            }
+            };
+            (fields, unused_params)
         } else if unnamed {
             let type_paths = fields
                 .iter()
@@ -330,12 +363,8 @@ impl<'a> ModuleType<'a> {
                 .collect::<Vec<_>>();
             let mut fields_tokens = type_paths
                 .iter()
-                .map(|(ty, type_name)| {
-                    let ty = if type_name.contains("Box<") {
-                        quote! { std::boxed::Box<#ty>}
-                    } else {
-                        quote! { #ty }
-                    };
+                .map(|(ty, ty_name)| {
+                    let ty = ty_toks(ty_name, ty);
                     if is_struct {
                         quote! { pub #ty }
                     } else {
@@ -344,23 +373,23 @@ impl<'a> ModuleType<'a> {
                 })
                 .collect::<Vec<_>>();
 
-            if is_struct {
-                let unused_params =
-                    unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
+            let unused_params =
+                unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
 
-                if !unused_params.is_empty() {
-                    fields_tokens
-                        .push(quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> })
-                }
+            if is_struct && !unused_params.is_empty() {
+                fields_tokens
+                    .push(quote! { pub core::marker::PhantomData<(#( #unused_params ),*)> })
             }
 
             let fields = quote! { ( #( #fields_tokens, )* ) };
-            if is_struct {
+            let fields_tokens = if is_struct {
                 // add a semicolon for tuple structs
                 quote! { #fields; }
             } else {
                 fields
-            }
+            };
+
+            (fields_tokens, unused_params)
         } else {
             panic!("Fields must be either all named or all unnamed")
         }
@@ -440,20 +469,12 @@ impl TypePathType {
                 syn::Type::Path(path)
             }
             TypeDef::Sequence(_) => {
-                let type_param = self
-                    .params
-                    .iter()
-                    .next()
-                    .expect("a sequence should have a single type parameter");
+                let type_param = &self.params[0];
                 let type_path = syn::parse_quote! { Vec<#type_param> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Array(array) => {
-                let array_type = self
-                    .params
-                    .iter()
-                    .next()
-                    .expect("an array should have a single type parameter");
+                let array_type = &self.params[0];
                 let array_len = array.len() as usize;
                 let array = syn::parse_quote! { [#array_type; #array_len] };
                 syn::Type::Array(array)
@@ -495,11 +516,7 @@ impl TypePathType {
             TypeDef::Compact(_) => {
                 // todo: change the return type of this method to include info that it is compact
                 // and should be annotated with #[compact] for fields
-                let compact_type = self
-                    .params
-                    .iter()
-                    .next()
-                    .expect("a compact type should have a single type parameter");
+                let compact_type = &self.params[0];
                 syn::Type::Path(syn::parse_quote! ( #compact_type ))
             }
         }
@@ -521,7 +538,7 @@ impl TypePathType {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TypeParameter {
     concrete_type_id: NonZeroU32,
     name: proc_macro2::Ident,
@@ -871,7 +888,7 @@ mod tests {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct Foo<_0, _1> {
                         pub a: _0,
-                        pub b: Option<(_0, _1)>,
+                        pub b: Option<(_0, _1,)>,
                     }
                 }
             }
@@ -923,8 +940,8 @@ mod tests {
                     }
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct UnnamedFields<_0, _1> (
-                        pub (u32, u32),
-                        pub core::marker::PhantomData<(_0, _1,)>,
+                        pub (u32, u32,),
+                        pub core::marker::PhantomData<(_0, _1)>,
                     );
                 }
             }

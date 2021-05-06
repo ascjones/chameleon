@@ -1,8 +1,8 @@
 use crate::{TokenStream2, TypeGenerator};
 use frame_metadata::{v13::RuntimeMetadataV13, RuntimeMetadata, RuntimeMetadataPrefixed};
+use heck::SnakeCase as _;
 use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
-use heck::SnakeCase as _;
 
 pub struct RuntimeGenerator {
     metadata: RuntimeMetadataV13,
@@ -20,12 +20,12 @@ impl RuntimeGenerator {
         let type_gen = TypeGenerator::new(&self.metadata.types, "__runtime_types");
         let types_mod = type_gen.generate_types_mod();
         let types_mod_ident = types_mod.ident();
-        let modules = self.metadata.modules.iter().map(|module| {
-            let mod_name = format_ident!("{}", module.name.to_string().to_snake_case());
-            let calls = module
+        let modules = self.metadata.pallets.iter().map(|pallet| {
+            let mod_name = format_ident!("{}", pallet.name.to_string().to_snake_case());
+            let calls = pallet
                 .calls
                 .as_ref()
-                .unwrap_or(&Vec::new())
+                .map_or(&Vec::new(), |call_metadata| &call_metadata.calls)
                 .iter()
                 .map(|call| {
                     use heck::CamelCase as _;
@@ -45,30 +45,14 @@ impl RuntimeGenerator {
                     }
                 })
                 .collect::<Vec<_>>();
-            let event =
-                if let Some(ref events) = module.event {
-                    let event_variants = events
-                        .iter()
-                        .map(|event| {
-                            let name = format_ident!("{}", event.name);
-                            let args = event.arguments.iter().map(|arg| {
-                                type_gen.resolve_type_path(arg.ty.id(), &[])
-                                // todo: add docs and #[compact] attr
-                            });
-                            quote! {
-                        #name (#( #args ),*),
-                    }
-                        })
-                        .collect::<Vec<_>>();
-                    quote! {
-                        #[derive(Debug, ::codec::Encode, ::codec::Decode)]
-                        pub enum Event {
-                            #( #event_variants )*
-                        }
-                    }
-                } else {
-                    quote! {}
-                };
+            let event = if let Some(ref event) = pallet.event {
+                let event_type = type_gen.resolve_type_path(event.ty.id(), &[]);
+                quote! {
+                    pub type Event = #event_type;
+                }
+            } else {
+                quote! {}
+            };
 
             let calls = if !calls.is_empty() {
                 quote! {
@@ -90,12 +74,12 @@ impl RuntimeGenerator {
             }
         });
 
-        let outer_event_variants = self.metadata.modules.iter().filter_map(|m| {
-            let variant_name = format_ident!("{}", m.name);
-            let mod_name = format_ident!("{}", m.name.to_string().to_snake_case());
-            let index = proc_macro2::Literal::u8_unsuffixed(m.index);
+        let outer_event_variants = self.metadata.pallets.iter().filter_map(|p| {
+            let variant_name = format_ident!("{}", p.name);
+            let mod_name = format_ident!("{}", p.name.to_string().to_snake_case());
+            let index = proc_macro2::Literal::u8_unsuffixed(p.index);
 
-            m.event.as_ref().map(|_| {
+            p.event.as_ref().map(|_| {
                 quote! {
                     #[codec(index = #index)]
                     #variant_name(#mod_name::Event),
