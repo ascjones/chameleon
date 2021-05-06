@@ -149,8 +149,6 @@ impl<'a> ToTokens for Module<'a> {
         tokens.extend(quote! {
             pub mod #name {
                 use super::#root_mod;
-                // todo: [AJ] maybe make a prelude to make no_std compatible
-                use std::collections::BTreeMap;
 
                 #( #modules )*
                 #( #types )*
@@ -294,11 +292,25 @@ impl<'a> ModuleType<'a> {
                 ty.parent_type_params(&mut used_type_params)
             }
             let type_params_set: HashSet<_> = type_params.iter().cloned().collect();
-            type_params_set
+            let mut unused = type_params_set
                 .difference(&used_type_params)
                 .cloned()
-                .collect()
+                .collect::<Vec<_>>();
+            unused.sort();
+            unused
         }
+
+        let ty_toks = |ty_name: &str, ty_path: &TypePath| {
+            if ty_name.contains("Box<") {
+                // todo [AJ] remove this hack once scale-info can represent Box somehow
+                quote! { std::boxed::Box<#ty_path> }
+            } else if ty_name.contains("BTreeMap<") {
+                // todo [AJ] remove this hack and add namespaces or import prelude types
+                quote! { std::collections::#ty_path }
+            } else {
+                quote! { #ty_path }
+            }
+        };
 
         if named {
             let fields = fields
@@ -316,12 +328,7 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = fields
                 .iter()
                 .map(|(name, ty, ty_name)| {
-                    // todo [AJ] remove this hack once scale-info can represent Box somehow
-                    let ty = if ty_name.contains("Box<") {
-                        quote! { std::boxed::Box<#ty>}
-                    } else {
-                        quote! { #ty }
-                    };
+                    let ty = ty_toks(ty_name, ty);
                     if is_struct {
                         quote! { pub #name: #ty }
                     } else {
@@ -358,12 +365,8 @@ impl<'a> ModuleType<'a> {
                 .collect::<Vec<_>>();
             let mut fields_tokens = type_paths
                 .iter()
-                .map(|(ty, type_name)| {
-                    let ty = if type_name.contains("Box<") {
-                        quote! { std::boxed::Box<#ty>}
-                    } else {
-                        quote! { #ty }
-                    };
+                .map(|(ty, ty_name)| {
+                    let ty = ty_toks(ty_name, ty);
                     if is_struct {
                         quote! { pub #ty }
                     } else {
@@ -378,7 +381,7 @@ impl<'a> ModuleType<'a> {
             if is_struct {
                 if !unused_params.is_empty() {
                     fields_tokens
-                        .push(quote! { pub core::marker::PhantomData<(#( #unused_params, )*)> })
+                        .push(quote! { pub core::marker::PhantomData<(#( #unused_params ),*)> })
                 }
             }
 
@@ -551,7 +554,7 @@ impl TypePathType {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq, Hash)]
+#[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TypeParameter {
     concrete_type_id: NonZeroU32,
     name: proc_macro2::Ident,
@@ -901,7 +904,7 @@ mod tests {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct Foo<_0, _1> {
                         pub a: _0,
-                        pub b: Option<(_0, _1)>,
+                        pub b: Option<(_0, _1,)>,
                     }
                 }
             }
@@ -953,8 +956,8 @@ mod tests {
                     }
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct UnnamedFields<_0, _1> (
-                        pub (u32, u32),
-                        pub core::marker::PhantomData<(_0, _1,)>,
+                        pub (u32, u32,),
+                        pub core::marker::PhantomData<(_0, _1)>,
                     );
                 }
             }
