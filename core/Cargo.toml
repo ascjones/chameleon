@@ -5,7 +5,7 @@ authors = ["Andrew Jones <ascjones@gmail.com>"]
 edition = "2018"
 
 [dependencies]
-frame-metadata = { package = "frame-metadata", git = "https://github.com/paritytech/frame-metadata", branch = "aj-substrate", default-features = false, features = ["v13"] }
+frame-metadata = { package = "frame-metadata", git = "https://github.com/montekki/frame-metadata", branch = "fs-substrate", default-features = false, features = ["v14"] }
 heck = "0.3.1"
 proc-macro2 = "1.0"
 quote = "1"

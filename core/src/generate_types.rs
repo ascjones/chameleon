@@ -15,7 +15,7 @@
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2, TokenStream};
 use quote::{format_ident, quote, ToTokens};
 use scale_info::{
-    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef,
+    form::PortableForm, Field, PortableRegistry, Type, TypeDef,
     TypeDefPrimitive,
 };
 use std::collections::{BTreeMap, HashSet};
@@ -60,7 +60,7 @@ impl<'a> TypeGenerator<'a> {
     fn insert_type(
         &'a self,
         ty: Type<PortableForm>,
-        id: NonZeroU32,
+        id: u32,
         path: Vec<String>,
         root_mod_ident: &Ident,
         module: &mut Module<'a>,
@@ -87,7 +87,7 @@ impl<'a> TypeGenerator<'a> {
     /// If no type with the given id found in the type registry.
     pub fn resolve_type_path(
         &self,
-        id: NonZeroU32,
+        id: u32,
         parent_type_params: &[TypeParameter],
     ) -> TypePath {
         if let Some(parent_type_param) = parent_type_params
@@ -114,7 +114,7 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Sequence(seq) => vec![seq.type_param().id()],
             TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
             TypeDef::Compact(compact) => vec![compact.type_param().id()],
-            TypeDef::Phantom(phantom) => vec![phantom.type_param().id()],
+            TypeDef::Phantom(_phantom) => vec![/* TODO [now]: this is not yet in the `aj-substrate` branch phantom.type_param().id() */],
             _ => ty.type_params().iter().map(|f| f.id()).collect(),
         };
 
@@ -328,11 +328,14 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = fields
                 .iter()
                 .map(|(name, ty, ty_name)| {
-                    let ty = ty_toks(ty_name, ty);
-                    if is_struct {
-                        quote! { pub #name: #ty }
-                    } else {
-                        quote! { #name: #ty }
+                    match ty_name {
+                        Some(ty_name) if is_struct => {
+                            let ty = ty_toks(ty_name, ty);
+                            quote! { pub #name: #ty }
+                        }
+                        _ => {
+                            quote! { #name: #ty }
+                        }
                     }
                 })
                 .collect::<Vec<_>>();
@@ -364,11 +367,14 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = type_paths
                 .iter()
                 .map(|(ty, ty_name)| {
-                    let ty = ty_toks(ty_name, ty);
-                    if is_struct {
-                        quote! { pub #ty }
-                    } else {
-                        quote! { #ty }
+                    match ty_name {
+                        Some(ty_name) if is_struct => {
+                            let ty = ty_toks(ty_name, ty);
+                            quote! { pub #ty }
+                        }
+                        _ => {
+                            quote! { #ty }
+                        }
                     }
                 })
                 .collect::<Vec<_>>();
@@ -506,11 +512,14 @@ impl TypePathType {
                 syn::Type::Path(path)
             }
             TypeDef::Phantom(_) => {
+                /* TODO: [now]: As soon as branch `aj-substrate` is updated to contain new code for
+                 * TypeDefPhantom this goes back, use `()` for the time being.
                 let type_param = params
                     .iter()
                     .next()
                     .expect("a phantom type should have a single type parameter");
-                let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
+                */
+                let type_path = syn::parse_quote! { core::marker::PhantomData<()> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Compact(_) => {
@@ -540,7 +549,7 @@ impl TypePathType {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TypeParameter {
-    concrete_type_id: NonZeroU32,
+    concrete_type_id: u32,
     name: proc_macro2::Ident,
 }
 
