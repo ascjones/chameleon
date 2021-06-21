@@ -7,3 +7,6 @@ members = [
 exclude = [
     "examples/",
 ]
+
+[patch.crates-io]
+scale-info = { git = "https://github.com/paritytech/scale-info", branch = "aj-substrate" }
