@@ -14,10 +14,7 @@
 
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2, TokenStream};
 use quote::{format_ident, quote, ToTokens};
-use scale_info::{
-    form::PortableForm, Field, PortableRegistry, Type, TypeDef,
-    TypeDefPrimitive,
-};
+use scale_info::{form::PortableForm, Field, PortableRegistry, Type, TypeDef, TypeDefPrimitive};
 use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug)]
@@ -85,11 +82,7 @@ impl<'a> TypeGenerator<'a> {
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type_path(
-        &self,
-        id: u32,
-        parent_type_params: &[TypeParameter],
-    ) -> TypePath {
+    pub fn resolve_type_path(&self, id: u32, parent_type_params: &[TypeParameter]) -> TypePath {
         if let Some(parent_type_param) = parent_type_params
             .iter()
             .find(|tp| tp.concrete_type_id == id)
@@ -114,7 +107,9 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Sequence(seq) => vec![seq.type_param().id()],
             TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
             TypeDef::Compact(compact) => vec![compact.type_param().id()],
-            TypeDef::Phantom(_phantom) => vec![/* TODO [now]: this is not yet in the `aj-substrate` branch phantom.type_param().id() */],
+            TypeDef::Phantom(_phantom) => {
+                vec![/* TODO [now]: this is not yet in the `aj-substrate` branch phantom.type_param().id() */]
+            }
             _ => ty.type_params().iter().map(|f| f.id()).collect(),
         };
 
@@ -327,15 +322,13 @@ impl<'a> ModuleType<'a> {
 
             let mut fields_tokens = fields
                 .iter()
-                .map(|(name, ty, ty_name)| {
-                    match ty_name {
-                        Some(ty_name) if is_struct => {
-                            let ty = ty_toks(ty_name, ty);
-                            quote! { pub #name: #ty }
-                        }
-                        _ => {
-                            quote! { #name: #ty }
-                        }
+                .map(|(name, ty, ty_name)| match ty_name {
+                    Some(ty_name) if is_struct => {
+                        let ty = ty_toks(ty_name, ty);
+                        quote! { pub #name: #ty }
+                    }
+                    _ => {
+                        quote! { #name: #ty }
                     }
                 })
                 .collect::<Vec<_>>();
@@ -366,15 +359,13 @@ impl<'a> ModuleType<'a> {
                 .collect::<Vec<_>>();
             let mut fields_tokens = type_paths
                 .iter()
-                .map(|(ty, ty_name)| {
-                    match ty_name {
-                        Some(ty_name) if is_struct => {
-                            let ty = ty_toks(ty_name, ty);
-                            quote! { pub #ty }
-                        }
-                        _ => {
-                            quote! { #ty }
-                        }
+                .map(|(ty, ty_name)| match ty_name {
+                    Some(ty_name) if is_struct => {
+                        let ty = ty_toks(ty_name, ty);
+                        quote! { pub #ty }
+                    }
+                    _ => {
+                        quote! { #ty }
                     }
                 })
                 .collect::<Vec<_>>();
