@@ -14,10 +14,7 @@
 
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2, TokenStream};
 use quote::{format_ident, quote, ToTokens};
-use scale_info::{
-    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef,
-    TypeDefPrimitive,
-};
+use scale_info::{form::PortableForm, Field, PortableRegistry, Type, TypeDef, TypeDefPrimitive};
 use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug)]
@@ -60,7 +57,7 @@ impl<'a> TypeGenerator<'a> {
     fn insert_type(
         &'a self,
         ty: Type<PortableForm>,
-        id: NonZeroU32,
+        id: u32,
         path: Vec<String>,
         root_mod_ident: &Ident,
         module: &mut Module<'a>,
@@ -85,11 +82,7 @@ impl<'a> TypeGenerator<'a> {
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type_path(
-        &self,
-        id: NonZeroU32,
-        parent_type_params: &[TypeParameter],
-    ) -> TypePath {
+    pub fn resolve_type_path(&self, id: u32, parent_type_params: &[TypeParameter]) -> TypePath {
         if let Some(parent_type_param) = parent_type_params
             .iter()
             .find(|tp| tp.concrete_type_id == id)
@@ -114,7 +107,10 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Sequence(seq) => vec![seq.type_param().id()],
             TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
             TypeDef::Compact(compact) => vec![compact.type_param().id()],
-            TypeDef::Phantom(phantom) => vec![phantom.type_param().id()],
+            TypeDef::Phantom(_phantom) => {
+                vec![/* TODO [now]: this is not yet in the `aj-substrate` branch phantom.type_param().id() */]
+            }
+            TypeDef::BitSequence(seq) => vec![seq.bit_order_type().id(), seq.bit_store_type().id()],
             _ => ty.type_params().iter().map(|f| f.id()).collect(),
         };
 
@@ -327,11 +323,12 @@ impl<'a> ModuleType<'a> {
 
             let mut fields_tokens = fields
                 .iter()
-                .map(|(name, ty, ty_name)| {
-                    let ty = ty_toks(ty_name, ty);
-                    if is_struct {
+                .map(|(name, ty, ty_name)| match ty_name {
+                    Some(ty_name) if is_struct => {
+                        let ty = ty_toks(ty_name, ty);
                         quote! { pub #name: #ty }
-                    } else {
+                    }
+                    _ => {
                         quote! { #name: #ty }
                     }
                 })
@@ -363,11 +360,12 @@ impl<'a> ModuleType<'a> {
                 .collect::<Vec<_>>();
             let mut fields_tokens = type_paths
                 .iter()
-                .map(|(ty, ty_name)| {
-                    let ty = ty_toks(ty_name, ty);
-                    if is_struct {
+                .map(|(ty, ty_name)| match ty_name {
+                    Some(ty_name) if is_struct => {
+                        let ty = ty_toks(ty_name, ty);
                         quote! { pub #ty }
-                    } else {
+                    }
+                    _ => {
                         quote! { #ty }
                     }
                 })
@@ -506,11 +504,14 @@ impl TypePathType {
                 syn::Type::Path(path)
             }
             TypeDef::Phantom(_) => {
+                /* TODO: [now]: As soon as branch `aj-substrate` is updated to contain new code for
+                 * TypeDefPhantom this goes back, use `()` for the time being.
                 let type_param = params
                     .iter()
                     .next()
                     .expect("a phantom type should have a single type parameter");
-                let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
+                */
+                let type_path = syn::parse_quote! { core::marker::PhantomData<()> };
                 syn::Type::Path(type_path)
             }
             TypeDef::Compact(_) => {
@@ -518,6 +519,17 @@ impl TypePathType {
                 // and should be annotated with #[compact] for fields
                 let compact_type = &self.params[0];
                 syn::Type::Path(syn::parse_quote! ( #compact_type ))
+            }
+            TypeDef::BitSequence(_) => {
+                let bit_order_type = &self.params[0];
+                let bit_store_type = &self.params[1];
+
+                let mut type_path: syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]> =
+                    syn::parse_quote! { bitvec::vec::BitVec<#bit_order_type, #bit_store_type> };
+                type_path.insert(0, syn::PathSegment::from(self.root_mod_ident.clone()));
+                let type_path = syn::parse_quote! { #type_path };
+
+                syn::Type::Path(type_path)
             }
         }
     }
@@ -540,7 +552,7 @@ impl TypePathType {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TypeParameter {
-    concrete_type_id: NonZeroU32,
+    concrete_type_id: u32,
     name: proc_macro2::Ident,
 }
 
@@ -889,6 +901,45 @@ mod tests {
                     pub struct Foo<_0, _1> {
                         pub a: _0,
                         pub b: Option<(_0, _1,)>,
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[cfg(feature = "bit-vec")]
+    #[test]
+    fn generate_bitvec() {
+        use bitvec::{
+            order::{Lsb0, Msb0},
+            vec::BitVec,
+        };
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            lsb: BitVec<Lsb0, u8>,
+            msb: BitVec<Msb0, u16>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                    pub struct S {
+                        pub lsb: root::bitvec::vec::BitVec<root::bitvec::order::Lsb0, u8>,
+                        pub msb: root::bitvec::vec::BitVec<root::bitvec::order::Msb0, u16>,
                     }
                 }
             }

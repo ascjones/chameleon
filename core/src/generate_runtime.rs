@@ -1,17 +1,17 @@
 use crate::{TokenStream2, TypeGenerator};
-use frame_metadata::{v13::RuntimeMetadataV13, RuntimeMetadata, RuntimeMetadataPrefixed};
+use frame_metadata::{v14::RuntimeMetadataV14, RuntimeMetadata, RuntimeMetadataPrefixed};
 use heck::SnakeCase as _;
 use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
 
 pub struct RuntimeGenerator {
-    metadata: RuntimeMetadataV13,
+    metadata: RuntimeMetadataV14,
 }
 
 impl RuntimeGenerator {
     pub fn new(metadata: RuntimeMetadataPrefixed) -> Self {
         match metadata.1 {
-            RuntimeMetadata::V13(v13) => Self { metadata: v13 },
+            RuntimeMetadata::V14(v14) => Self { metadata: v14 },
             _ => panic!("Unsupported metadata version {:?}", metadata.1),
         }
     }
