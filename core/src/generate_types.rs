@@ -934,8 +934,8 @@ mod tests {
                     use super::root;
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct S {
-                        pub lsb: bitvec::vec::BitVec<root::bitvec::order::Lsb0, u8>,
-                        pub msb: bitvec::vec::BitVec<root::bitvec::order::Msb0, u16>,
+                        pub lsb: root::bitvec::vec::BitVec<root::bitvec::order::Lsb0, u8>,
+                        pub msb: root::bitvec::vec::BitVec<root::bitvec::order::Msb0, u16>,
                     }
                 }
             }
