@@ -110,6 +110,7 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Phantom(_phantom) => {
                 vec![/* TODO [now]: this is not yet in the `aj-substrate` branch phantom.type_param().id() */]
             }
+            TypeDef::BitSequence(seq) => vec![seq.bit_order_type().id(), seq.bit_store_type().id()],
             _ => ty.type_params().iter().map(|f| f.id()).collect(),
         };
 
@@ -519,6 +520,13 @@ impl TypePathType {
                 let compact_type = &self.params[0];
                 syn::Type::Path(syn::parse_quote! ( #compact_type ))
             }
+            TypeDef::BitSequence(_bitvec) => {
+                let t = &self.params[0];
+                let type_param_id = &self.params[1];
+
+                let type_path = syn::parse_quote! { bitvec::vec::BitVec<#t, #type_param_id> };
+                syn::Type::Path(type_path)
+            }
         }
     }
 
@@ -889,6 +897,45 @@ mod tests {
                     pub struct Foo<_0, _1> {
                         pub a: _0,
                         pub b: Option<(_0, _1,)>,
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[cfg(feature = "bit-vec")]
+    #[test]
+    fn generate_bitvec() {
+        use bitvec::{
+            order::{Lsb0, Msb0},
+            vec::BitVec,
+        };
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            lsb: BitVec<Lsb0, u8>,
+            msb: BitVec<Msb0, u16>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                    pub struct S {
+                        pub lsb: bitvec::vec::BitVec<root::bitvec::order::Lsb0, u8>,
+                        pub msb: bitvec::vec::BitVec<root::bitvec::order::Msb0, u16>,
                     }
                 }
             }
