@@ -520,11 +520,15 @@ impl TypePathType {
                 let compact_type = &self.params[0];
                 syn::Type::Path(syn::parse_quote! ( #compact_type ))
             }
-            TypeDef::BitSequence(_bitvec) => {
-                let t = &self.params[0];
-                let type_param_id = &self.params[1];
+            TypeDef::BitSequence(_) => {
+                let bit_order_type = &self.params[0];
+                let bit_store_type = &self.params[1];
 
-                let type_path = syn::parse_quote! { bitvec::vec::BitVec<#t, #type_param_id> };
+                let mut type_path: syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]> =
+                    syn::parse_quote! { bitvec::vec::BitVec<#bit_order_type, #bit_store_type> };
+                type_path.insert(0, syn::PathSegment::from(self.root_mod_ident.clone()));
+                let type_path = syn::parse_quote! { #type_path };
+
                 syn::Type::Path(type_path)
             }
         }
