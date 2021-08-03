@@ -22,29 +22,50 @@ impl RuntimeGenerator {
         let types_mod_ident = types_mod.ident();
         let modules = self.metadata.pallets.iter().map(|pallet| {
             let mod_name = format_ident!("{}", pallet.name.to_string().to_snake_case());
-            let calls = pallet
-                .calls
-                .as_ref()
-                .map_or(&Vec::new(), |call_metadata| &call_metadata.calls)
-                .iter()
-                .map(|call| {
-                    use heck::CamelCase as _;
-                    // todo: add free functions to Call mod and doc strings
-                    let name = format_ident!("{}", call.name.to_string().to_camel_case());
-                    let args = call.arguments.iter().map(|arg| {
-                        let name = format_ident!("{}", arg.name);
-                        let ty = type_gen.resolve_type_path(arg.ty.id(), &[]);
-                        // todo: add docs and #[compact] attr
-                        quote! { #name: #ty }
-                    });
-                    quote! {
-                        #[derive(Debug, ::codec::Encode, ::codec::Decode)]
-                        pub struct #name {
-                            #( #args ),*
-                        }
+            let mut calls = Vec::new();
+            for call in &pallet.calls {
+                let ty = call.ty;
+                let name = type_gen.resolve_type_path(ty.id(), &[]);
+                use crate::generate_types::TypePath;
+                match name {
+                    TypePath::Parameter(_) => unreachable!(),
+                    TypePath::Type(ref ty) => {
+                        let ty = ty.ty();
+
+                        let type_def = ty.type_def();
+
+                        let c = match type_def {
+                            scale_info::TypeDef::Variant(var) => var
+                                .variants()
+                                .iter()
+                                .map(|var| {
+                                    use heck::CamelCase;
+                                    let name =
+                                        format_ident!("{}", var.name().to_string().to_camel_case());
+                                    let args = var.fields().iter().filter_map(|field| {
+                                        field.name().map(|name| {
+                                            let name = format_ident!("{}", name);
+                                            let ty =
+                                                type_gen.resolve_type_path(field.ty().id(), &[]);
+                                            quote! { #name: #ty }
+                                        })
+                                    });
+
+                                    quote! {
+                                        #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                                        pub struct #name {
+                                            #( #args ),*
+                                        }
+                                    }
+                                })
+                                .collect::<Vec<_>>(),
+                            _ => unreachable!(),
+                        };
+                        calls.extend(c);
                     }
-                })
-                .collect::<Vec<_>>();
+                }
+            }
+
             let event = if let Some(ref event) = pallet.event {
                 let event_type = type_gen.resolve_type_path(event.ty.id(), &[]);
                 quote! {

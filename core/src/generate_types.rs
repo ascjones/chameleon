@@ -37,15 +37,15 @@ impl<'a> TypeGenerator<'a> {
     pub fn generate_types_mod(&'a self) -> Module<'a> {
         let mut root_mod = Module::new(self.root_mod_ident.clone(), self.root_mod_ident.clone());
 
-        for (id, ty) in self.type_registry.enumerate() {
-            if ty.path().namespace().is_empty() {
+        for (id, ty) in self.type_registry.types().iter().enumerate() {
+            if ty.ty().path().namespace().is_empty() {
                 // prelude types e.g. Option/Result have no namespace, so we don't generate them
                 continue;
             }
             self.insert_type(
-                ty.clone(),
-                id,
-                ty.path().namespace().to_vec(),
+                ty.ty().clone(),
+                id as u32,
+                ty.ty().path().namespace().to_vec(),
                 &self.root_mod_ident,
                 &mut root_mod,
             )
@@ -99,7 +99,12 @@ impl<'a> TypeGenerator<'a> {
 
         let mut ty = resolve_type(id);
         if ty.path().ident() == Some("Cow".to_string()) {
-            ty = resolve_type(ty.type_params()[0].id())
+            ty = resolve_type(
+                ty.type_params()[0]
+                    .ty()
+                    .expect("type parameters to Cow are not expected to be skipped; qed")
+                    .id(),
+            )
         }
 
         let params_type_ids = match ty.type_def() {
@@ -107,11 +112,12 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Sequence(seq) => vec![seq.type_param().id()],
             TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
             TypeDef::Compact(compact) => vec![compact.type_param().id()],
-            TypeDef::Phantom(_phantom) => {
-                vec![/* TODO [now]: this is not yet in the `aj-substrate` branch phantom.type_param().id() */]
-            }
             TypeDef::BitSequence(seq) => vec![seq.bit_order_type().id(), seq.bit_store_type().id()],
-            _ => ty.type_params().iter().map(|f| f.id()).collect(),
+            _ => ty
+                .type_params()
+                .iter()
+                .filter_map(|f| f.ty().map(|f| f.id()))
+                .collect(),
         };
 
         let params = params_type_ids
@@ -194,12 +200,15 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
             .type_params()
             .iter()
             .enumerate()
-            .map(|(i, tp)| {
-                let tp_name = format_ident!("_{}", i);
-                TypeParameter {
-                    concrete_type_id: tp.id(),
-                    name: tp_name,
+            .filter_map(|(i, tp)| match tp.ty() {
+                Some(ty) => {
+                    let tp_name = format_ident!("_{}", i);
+                    Some(TypeParameter {
+                        concrete_type_id: ty.id(),
+                        name: tp_name,
+                    })
                 }
+                None => None,
             })
             .collect::<Vec<_>>();
 
@@ -408,7 +417,7 @@ impl quote::ToTokens for TypePath {
 }
 
 impl TypePath {
-    fn to_syn_type(&self) -> syn::Type {
+    pub(crate) fn to_syn_type(&self) -> syn::Type {
         match self {
             TypePath::Parameter(ty_param) => syn::Type::Path(syn::parse_quote! { #ty_param }),
             TypePath::Type(ty) => ty.to_syn_type(),
@@ -442,6 +451,10 @@ pub struct TypePathType {
 }
 
 impl TypePathType {
+    pub(crate) fn ty(&self) -> &Type<PortableForm> {
+        &self.ty
+    }
+
     fn to_syn_type(&self) -> syn::Type {
         let params = &self.params;
         match self.ty.type_def() {
@@ -502,17 +515,6 @@ impl TypePathType {
                 let ident = format_ident!("{}", primitive);
                 let path = syn::parse_quote! { #ident };
                 syn::Type::Path(path)
-            }
-            TypeDef::Phantom(_) => {
-                /* TODO: [now]: As soon as branch `aj-substrate` is updated to contain new code for
-                 * TypeDefPhantom this goes back, use `()` for the time being.
-                let type_param = params
-                    .iter()
-                    .next()
-                    .expect("a phantom type should have a single type parameter");
-                */
-                let type_path = syn::parse_quote! { core::marker::PhantomData<()> };
-                syn::Type::Path(type_path)
             }
             TypeDef::Compact(_) => {
                 // todo: change the return type of this method to include info that it is compact

@@ -6,13 +6,13 @@ edition = "2018"
 
 [dependencies]
 bitvec = { version = "0.20.1", default-features = false, features = ["alloc"], optional = true }
-frame-metadata = { package = "frame-metadata", git = "https://github.com/paritytech/frame-metadata", branch = "aj-substrate", default-features = false, features = ["v14"] }
+frame-metadata = { package = "frame-metadata", git = "https://github.com/paritytech/frame-metadata", default-features = false, features = ["v14"] }
 heck = "0.3.1"
 proc-macro2 = "1.0"
 quote = "1"
 syn = { version = "1.0", features = ["parsing", "full"] }
 scale = { package = "parity-scale-codec", version = "2.0", default-features = false}
-scale-info = { git = "https://github.com/paritytech/scale-info", branch = "aj-substrate", default-features = false, features = ["derive", "decode"] }
+scale-info = { version = "0.10.0", default-features = false, features = ["derive", "decode"] }
 
 thiserror = "1.0.22"
 

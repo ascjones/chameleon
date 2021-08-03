@@ -9,4 +9,4 @@ exclude = [
 ]
 
 [patch.crates-io]
-scale-info = { git = "https://github.com/paritytech/scale-info", branch = "aj-substrate" }
+scale-info = { git = "https://github.com/montekki/scale-info", branch = "fs-add-type-id" }
