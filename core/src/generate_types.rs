@@ -14,10 +14,7 @@
 
 use proc_macro2::{Ident, Span, TokenStream as TokenStream2, TokenStream};
 use quote::{format_ident, quote, ToTokens};
-use scale_info::{
-    form::PortableForm, prelude::num::NonZeroU32, Field, PortableRegistry, Type, TypeDef,
-    TypeDefPrimitive,
-};
+use scale_info::{form::PortableForm, Field, PortableRegistry, Type, TypeDef, TypeDefPrimitive};
 use std::collections::{BTreeMap, HashSet};
 
 #[derive(Debug)]
@@ -40,15 +37,15 @@ impl<'a> TypeGenerator<'a> {
     pub fn generate_types_mod(&'a self) -> Module<'a> {
         let mut root_mod = Module::new(self.root_mod_ident.clone(), self.root_mod_ident.clone());
 
-        for (id, ty) in self.type_registry.enumerate() {
-            if ty.path().namespace().is_empty() {
+        for (id, ty) in self.type_registry.types().iter().enumerate() {
+            if ty.ty().path().namespace().is_empty() {
                 // prelude types e.g. Option/Result have no namespace, so we don't generate them
                 continue;
             }
             self.insert_type(
-                ty.clone(),
-                id,
-                ty.path().namespace().to_vec(),
+                ty.ty().clone(),
+                id as u32,
+                ty.ty().path().namespace().to_vec(),
                 &self.root_mod_ident,
                 &mut root_mod,
             )
@@ -60,7 +57,7 @@ impl<'a> TypeGenerator<'a> {
     fn insert_type(
         &'a self,
         ty: Type<PortableForm>,
-        id: NonZeroU32,
+        id: u32,
         path: Vec<String>,
         root_mod_ident: &Ident,
         module: &mut Module<'a>,
@@ -85,11 +82,7 @@ impl<'a> TypeGenerator<'a> {
     /// # Panics
     ///
     /// If no type with the given id found in the type registry.
-    pub fn resolve_type_path(
-        &self,
-        id: NonZeroU32,
-        parent_type_params: &[TypeParameter],
-    ) -> TypePath {
+    pub fn resolve_type_path(&self, id: u32, parent_type_params: &[TypeParameter]) -> TypePath {
         if let Some(parent_type_param) = parent_type_params
             .iter()
             .find(|tp| tp.concrete_type_id == id)
@@ -106,7 +99,12 @@ impl<'a> TypeGenerator<'a> {
 
         let mut ty = resolve_type(id);
         if ty.path().ident() == Some("Cow".to_string()) {
-            ty = resolve_type(ty.type_params()[0].id())
+            ty = resolve_type(
+                ty.type_params()[0]
+                    .ty()
+                    .expect("type parameters to Cow are not expected to be skipped; qed")
+                    .id(),
+            )
         }
 
         let params_type_ids = match ty.type_def() {
@@ -114,8 +112,12 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Sequence(seq) => vec![seq.type_param().id()],
             TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
             TypeDef::Compact(compact) => vec![compact.type_param().id()],
-            TypeDef::Phantom(phantom) => vec![phantom.type_param().id()],
-            _ => ty.type_params().iter().map(|f| f.id()).collect(),
+            TypeDef::BitSequence(seq) => vec![seq.bit_order_type().id(), seq.bit_store_type().id()],
+            _ => ty
+                .type_params()
+                .iter()
+                .filter_map(|f| f.ty().map(|f| f.id()))
+                .collect(),
         };
 
         let params = params_type_ids
@@ -198,12 +200,15 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
             .type_params()
             .iter()
             .enumerate()
-            .map(|(i, tp)| {
-                let tp_name = format_ident!("_{}", i);
-                TypeParameter {
-                    concrete_type_id: tp.id(),
-                    name: tp_name,
+            .filter_map(|(i, tp)| match tp.ty() {
+                Some(ty) => {
+                    let tp_name = format_ident!("_{}", i);
+                    Some(TypeParameter {
+                        concrete_type_id: ty.id(),
+                        name: tp_name,
+                    })
                 }
+                None => None,
             })
             .collect::<Vec<_>>();
 
@@ -327,11 +332,12 @@ impl<'a> ModuleType<'a> {
 
             let mut fields_tokens = fields
                 .iter()
-                .map(|(name, ty, ty_name)| {
-                    let ty = ty_toks(ty_name, ty);
-                    if is_struct {
+                .map(|(name, ty, ty_name)| match ty_name {
+                    Some(ty_name) if is_struct => {
+                        let ty = ty_toks(ty_name, ty);
                         quote! { pub #name: #ty }
-                    } else {
+                    }
+                    _ => {
                         quote! { #name: #ty }
                     }
                 })
@@ -363,11 +369,12 @@ impl<'a> ModuleType<'a> {
                 .collect::<Vec<_>>();
             let mut fields_tokens = type_paths
                 .iter()
-                .map(|(ty, ty_name)| {
-                    let ty = ty_toks(ty_name, ty);
-                    if is_struct {
+                .map(|(ty, ty_name)| match ty_name {
+                    Some(ty_name) if is_struct => {
+                        let ty = ty_toks(ty_name, ty);
                         quote! { pub #ty }
-                    } else {
+                    }
+                    _ => {
                         quote! { #ty }
                     }
                 })
@@ -410,7 +417,7 @@ impl quote::ToTokens for TypePath {
 }
 
 impl TypePath {
-    fn to_syn_type(&self) -> syn::Type {
+    pub(crate) fn to_syn_type(&self) -> syn::Type {
         match self {
             TypePath::Parameter(ty_param) => syn::Type::Path(syn::parse_quote! { #ty_param }),
             TypePath::Type(ty) => ty.to_syn_type(),
@@ -444,6 +451,10 @@ pub struct TypePathType {
 }
 
 impl TypePathType {
+    pub(crate) fn ty(&self) -> &Type<PortableForm> {
+        &self.ty
+    }
+
     fn to_syn_type(&self) -> syn::Type {
         let params = &self.params;
         match self.ty.type_def() {
@@ -505,19 +516,22 @@ impl TypePathType {
                 let path = syn::parse_quote! { #ident };
                 syn::Type::Path(path)
             }
-            TypeDef::Phantom(_) => {
-                let type_param = params
-                    .iter()
-                    .next()
-                    .expect("a phantom type should have a single type parameter");
-                let type_path = syn::parse_quote! { core::marker::PhantomData<#type_param> };
-                syn::Type::Path(type_path)
-            }
             TypeDef::Compact(_) => {
                 // todo: change the return type of this method to include info that it is compact
                 // and should be annotated with #[compact] for fields
                 let compact_type = &self.params[0];
                 syn::Type::Path(syn::parse_quote! ( #compact_type ))
+            }
+            TypeDef::BitSequence(_) => {
+                let bit_order_type = &self.params[0];
+                let bit_store_type = &self.params[1];
+
+                let mut type_path: syn::punctuated::Punctuated<syn::PathSegment, syn::Token![::]> =
+                    syn::parse_quote! { bitvec::vec::BitVec<#bit_order_type, #bit_store_type> };
+                type_path.insert(0, syn::PathSegment::from(self.root_mod_ident.clone()));
+                let type_path = syn::parse_quote! { #type_path };
+
+                syn::Type::Path(type_path)
             }
         }
     }
@@ -540,7 +554,7 @@ impl TypePathType {
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub struct TypeParameter {
-    concrete_type_id: NonZeroU32,
+    concrete_type_id: u32,
     name: proc_macro2::Ident,
 }
 
@@ -889,6 +903,45 @@ mod tests {
                     pub struct Foo<_0, _1> {
                         pub a: _0,
                         pub b: Option<(_0, _1,)>,
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[cfg(feature = "bit-vec")]
+    #[test]
+    fn generate_bitvec() {
+        use bitvec::{
+            order::{Lsb0, Msb0},
+            vec::BitVec,
+        };
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            lsb: BitVec<Lsb0, u8>,
+            msb: BitVec<Msb0, u16>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                    pub struct S {
+                        pub lsb: root::bitvec::vec::BitVec<root::bitvec::order::Lsb0, u8>,
+                        pub msb: root::bitvec::vec::BitVec<root::bitvec::order::Msb0, u16>,
                     }
                 }
             }
