@@ -1,8 +1,9 @@
 use crate::{TokenStream2, TypeGenerator};
-use frame_metadata::{v14::RuntimeMetadataV14, RuntimeMetadata, RuntimeMetadataPrefixed};
+use frame_metadata::{v14::RuntimeMetadataV14, RuntimeMetadata, RuntimeMetadataPrefixed, PalletCallMetadata};
 use heck::SnakeCase as _;
 use quote::{format_ident, quote};
 use scale_info::prelude::string::ToString;
+use scale_info::form::PortableForm;
 
 pub struct RuntimeGenerator {
     metadata: RuntimeMetadataV14,
@@ -24,46 +25,8 @@ impl RuntimeGenerator {
             let mod_name = format_ident!("{}", pallet.name.to_string().to_snake_case());
             let mut calls = Vec::new();
             for call in &pallet.calls {
-                let ty = call.ty;
-                let name = type_gen.resolve_type_path(ty.id(), &[]);
-                use crate::generate_types::TypePath;
-                match name {
-                    TypePath::Parameter(_) => unreachable!(),
-                    TypePath::Type(ref ty) => {
-                        let ty = ty.ty();
-
-                        let type_def = ty.type_def();
-
-                        let c = match type_def {
-                            scale_info::TypeDef::Variant(var) => var
-                                .variants()
-                                .iter()
-                                .map(|var| {
-                                    use heck::CamelCase;
-                                    let name =
-                                        format_ident!("{}", var.name().to_string().to_camel_case());
-                                    let args = var.fields().iter().filter_map(|field| {
-                                        field.name().map(|name| {
-                                            let name = format_ident!("{}", name);
-                                            let ty =
-                                                type_gen.resolve_type_path(field.ty().id(), &[]);
-                                            quote! { #name: #ty }
-                                        })
-                                    });
-
-                                    quote! {
-                                        #[derive(Debug, ::codec::Encode, ::codec::Decode)]
-                                        pub struct #name {
-                                            #( #args ),*
-                                        }
-                                    }
-                                })
-                                .collect::<Vec<_>>(),
-                            _ => unreachable!(),
-                        };
-                        calls.extend(c);
-                    }
-                }
+                let call_structs = self.generate_call_structs(&type_gen, call);
+                calls.extend(call_structs)
             }
 
             let event = if let Some(ref event) = pallet.event {
@@ -122,6 +85,48 @@ impl RuntimeGenerator {
                 #outer_event
                 #( #modules )*
                 #types_mod
+            }
+        }
+    }
+
+    fn generate_call_structs(&self, type_gen: &TypeGenerator, call: &PalletCallMetadata<PortableForm>) -> Vec<TokenStream2> {
+        let ty = call.ty;
+        let name = type_gen.resolve_type_path(ty.id(), &[]);
+        use crate::generate_types::TypePath;
+        match name {
+            TypePath::Parameter(_) => panic!("Call type should be a Type"),
+            TypePath::Type(ref ty) => {
+                let ty = ty.ty();
+
+                let type_def = ty.type_def();
+                if let scale_info::TypeDef::Variant(variant) = type_def {
+                    variant
+                        .variants()
+                        .iter()
+                        .map(|var| {
+                            use heck::CamelCase;
+                            let name =
+                                format_ident!("{}", var.name().to_string().to_camel_case());
+                            let args = var.fields().iter().filter_map(|field| {
+                                field.name().map(|name| {
+                                    let name = format_ident!("{}", name);
+                                    let ty =
+                                        type_gen.resolve_type_path(field.ty().id(), &[]);
+                                    quote! { #name: #ty }
+                                })
+                            });
+
+                            quote! {
+                                #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                                pub struct #name {
+                                    #( #args ),*
+                                }
+                            }
+                        })
+                        .collect::<Vec<_>>()
+                } else {
+                    panic!("Call type should be an variant/enum type")
+                }
             }
         }
     }
