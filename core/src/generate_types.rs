@@ -113,6 +113,7 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
             TypeDef::Compact(compact) => vec![compact.type_param().id()],
             TypeDef::BitSequence(seq) => vec![seq.bit_order_type().id(), seq.bit_store_type().id()],
+            TypeDef::Range(range) => vec![range.index_type().id()],
             _ => ty
                 .type_params()
                 .iter()
@@ -533,6 +534,15 @@ impl TypePathType {
 
                 syn::Type::Path(type_path)
             }
+            TypeDef::Range(range) => {
+                let idx = &self.params[0];
+                let type_path = if range.inclusive() {
+                    syn::parse_quote! { ::core::ops::RangeInclusive<#idx> }
+                } else {
+                    syn::parse_quote! { ::core::ops::Range<#idx> }
+                };
+                syn::Type::Path(type_path)
+            }
         }
     }
 
@@ -816,6 +826,39 @@ mod tests {
                     pub struct S {
                         pub a: std::boxed::Box<bool>,
                         pub b: std::boxed::Box<u32>,
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[test]
+    fn range_fields() {
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: core::ops::Range<u32>,
+            b: core::ops::RangeInclusive<u32>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                    pub struct S {
+                        pub a: ::core::ops::Range<u32>,
+                        pub b: ::core::ops::RangeInclusive<u32>,
                     }
                 }
             }
