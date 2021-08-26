@@ -73,11 +73,11 @@ pub mod node_runtime {
             use super::__runtime_types;
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct FillBlock {
-                _ratio: __runtime_types::sp_arithmetic::per_things::Perbill,
+                ratio: __runtime_types::sp_arithmetic::per_things::Perbill,
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct Remark {
-                _remark: Vec<u8>,
+                remark: Vec<u8>,
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct SetHeapPages {
@@ -107,7 +107,7 @@ pub mod node_runtime {
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct KillPrefix {
                 prefix: Vec<u8>,
-                _subkeys: u32,
+                subkeys: u32,
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct RemarkWithEvent {
@@ -143,7 +143,10 @@ pub mod node_runtime {
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct ReportEquivocation {
                 equivocation_proof: __runtime_types::sp_consensus_slots::EquivocationProof<
-                    __runtime_types::sp_runtime::generic::header::Header,
+                    __runtime_types::sp_runtime::generic::header::Header<
+                        u32,
+                        __runtime_types::sp_runtime::traits::BlakeTwo256,
+                    >,
                     __runtime_types::sp_consensus_babe::app::Public,
                 >,
                 key_owner_proof: __runtime_types::sp_session::MembershipProof,
@@ -151,7 +154,10 @@ pub mod node_runtime {
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct ReportEquivocationUnsigned {
                 equivocation_proof: __runtime_types::sp_consensus_slots::EquivocationProof<
-                    __runtime_types::sp_runtime::generic::header::Header,
+                    __runtime_types::sp_runtime::generic::header::Header<
+                        u32,
+                        __runtime_types::sp_runtime::traits::BlakeTwo256,
+                    >,
                     __runtime_types::sp_consensus_babe::app::Public,
                 >,
                 key_owner_proof: __runtime_types::sp_session::MembershipProof,
@@ -178,7 +184,12 @@ pub mod node_runtime {
             use super::__runtime_types;
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct SetUncles {
-                new_uncles: Vec<__runtime_types::sp_runtime::generic::header::Header>,
+                new_uncles: Vec<
+                    __runtime_types::sp_runtime::generic::header::Header<
+                        u32,
+                        __runtime_types::sp_runtime::traits::BlakeTwo256,
+                    >,
+                >,
             }
         }
     }
@@ -273,8 +284,8 @@ pub mod node_runtime {
             use super::__runtime_types;
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct SubmitUnsigned {
-                solution: __runtime_types::pallet_election_provider_multi_phase::RawSolution<
-                    __runtime_types::node_runtime::NposCompactSolution16,
+                raw_solution: __runtime_types::pallet_election_provider_multi_phase::RawSolution<
+                    __runtime_types::node_runtime::NposSolution16,
                 >,
                 witness:
                     __runtime_types::pallet_election_provider_multi_phase::SolutionOrSnapshotSize,
@@ -294,8 +305,8 @@ pub mod node_runtime {
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct Submit {
-                solution: __runtime_types::pallet_election_provider_multi_phase::RawSolution<
-                    __runtime_types::node_runtime::NposCompactSolution16,
+                raw_solution: __runtime_types::pallet_election_provider_multi_phase::RawSolution<
+                    __runtime_types::node_runtime::NposSolution16,
                 >,
                 num_signed_submissions: u32,
             }
@@ -401,7 +412,7 @@ pub mod node_runtime {
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct SetHistoryDepth {
                 new_history_depth: u32,
-                _era_items_deleted: u32,
+                era_items_deleted: u32,
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct ReapStash {
@@ -679,8 +690,8 @@ pub mod node_runtime {
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct CleanDefunctVoters {
-                _num_voters: u32,
-                _num_defunct: u32,
+                num_voters: u32,
+                num_defunct: u32,
             }
         }
         pub type Event = __runtime_types::pallet_elections_phragmen::pallet::Event;
@@ -823,7 +834,7 @@ pub mod node_runtime {
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct SudoUncheckedWeight {
                 call: __runtime_types::node_runtime::Call,
-                _weight: u64,
+                weight: u64,
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct SetKey {
@@ -850,7 +861,7 @@ pub mod node_runtime {
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct Heartbeat {
                 heartbeat: __runtime_types::pallet_im_online::Heartbeat<u32>,
-                _signature: __runtime_types::pallet_im_online::sr25519::app_sr25519::Signature,
+                signature: __runtime_types::pallet_im_online::sr25519::app_sr25519::Signature,
             }
         }
         pub type Event = __runtime_types::pallet_im_online::pallet::Event;
@@ -1089,7 +1100,7 @@ pub mod node_runtime {
                     __runtime_types::sp_core::crypto::AccountId32,
                     u32,
                 >,
-                schedule: __runtime_types::pallet_vesting::VestingInfo<u128, u32>,
+                schedule: __runtime_types::pallet_vesting::vesting_info::VestingInfo<u128, u32>,
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct ForceVestedTransfer {
@@ -1101,7 +1112,12 @@ pub mod node_runtime {
                     __runtime_types::sp_core::crypto::AccountId32,
                     u32,
                 >,
-                schedule: __runtime_types::pallet_vesting::VestingInfo<u128, u32>,
+                schedule: __runtime_types::pallet_vesting::vesting_info::VestingInfo<u128, u32>,
+            }
+            #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
+            pub struct MergeSchedules {
+                schedule1_index: u32,
+                schedule2_index: u32,
             }
         }
         pub type Event = __runtime_types::pallet_vesting::pallet::Event;
@@ -1976,10 +1992,10 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call {
                     fill_block {
-                        _ratio: __runtime_types::sp_arithmetic::per_things::Perbill,
+                        ratio: __runtime_types::sp_arithmetic::per_things::Perbill,
                     },
                     remark {
-                        _remark: Vec<u8>,
+                        remark: Vec<u8>,
                     },
                     set_heap_pages {
                         pages: u64,
@@ -2003,7 +2019,7 @@ pub mod node_runtime {
                     },
                     kill_prefix {
                         prefix: Vec<u8>,
-                        _subkeys: u32,
+                        subkeys: u32,
                     },
                     remark_with_event {
                         remark: Vec<u8>,
@@ -2179,7 +2195,7 @@ pub mod node_runtime {
                 TransactionStorage(__runtime_types::pallet_transaction_storage::pallet::Event),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-            pub struct NposCompactSolution16 {
+            pub struct NposSolution16 {
                 votes1: Vec<(u32, u16)>,
                 votes2: Vec<(
                     u32,
@@ -2604,7 +2620,12 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call {
                     set_uncles {
-                        new_uncles: Vec<__runtime_types::sp_runtime::generic::header::Header>,
+                        new_uncles: Vec<
+                            __runtime_types::sp_runtime::generic::header::Header<
+                                u32,
+                                __runtime_types::sp_runtime::traits::BlakeTwo256,
+                            >,
+                        >,
                     },
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -2631,16 +2652,26 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call {
                     report_equivocation {
-                        equivocation_proof: __runtime_types::sp_consensus_slots::EquivocationProof<
-                            __runtime_types::sp_runtime::generic::header::Header,
-                            __runtime_types::sp_consensus_babe::app::Public,
+                        equivocation_proof: std::boxed::Box<
+                            __runtime_types::sp_consensus_slots::EquivocationProof<
+                                __runtime_types::sp_runtime::generic::header::Header<
+                                    u32,
+                                    __runtime_types::sp_runtime::traits::BlakeTwo256,
+                                >,
+                                __runtime_types::sp_consensus_babe::app::Public,
+                            >,
                         >,
                         key_owner_proof: __runtime_types::sp_session::MembershipProof,
                     },
                     report_equivocation_unsigned {
-                        equivocation_proof: __runtime_types::sp_consensus_slots::EquivocationProof<
-                            __runtime_types::sp_runtime::generic::header::Header,
-                            __runtime_types::sp_consensus_babe::app::Public,
+                        equivocation_proof: std::boxed::Box<
+                            __runtime_types::sp_consensus_slots::EquivocationProof<
+                                __runtime_types::sp_runtime::generic::header::Header<
+                                    u32,
+                                    __runtime_types::sp_runtime::traits::BlakeTwo256,
+                                >,
+                                __runtime_types::sp_consensus_babe::app::Public,
+                            >,
                         >,
                         key_owner_proof: __runtime_types::sp_session::MembershipProof,
                     },
@@ -2868,12 +2899,12 @@ pub mod node_runtime {
                     old_count: u32,
                 },
                 execute {
-                    proposal: __runtime_types::node_runtime::Call,
+                    proposal: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     length_bound: u32,
                 },
                 propose {
                     threshold: u32,
-                    proposal: __runtime_types::node_runtime::Call,
+                    proposal: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     length_bound: u32,
                 },
                 vote {
@@ -2917,14 +2948,14 @@ pub mod node_runtime {
                 Executed(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
                 MemberExecuted(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
                 Closed(_0, u32, u32),
-                __Ignore(core::marker::PhantomData<(_2,)>),
+                __Ignore(::core::marker::PhantomData<_2>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum RawOrigin<_0, _1> {
                 Members(u32, u32),
                 Member(_0),
                 _Phantom,
-                __Ignore(core::marker::PhantomData<(_1,)>),
+                __Ignore(::core::marker::PhantomData<_1>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct Votes<_0, _1> {
@@ -3196,7 +3227,7 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub struct RawTombstoneContractInfo<_0, _1>(
                     pub _0,
-                    pub core::marker::PhantomData<(_1)>,
+                    pub ::core::marker::PhantomData<_1>,
                 );
             }
             pub mod wasm {
@@ -3319,7 +3350,6 @@ pub mod node_runtime {
                 pub enum Error {
                     ValueLow,
                     ProposalMissing,
-                    BadIndex,
                     AlreadyCanceled,
                     DuplicateProposal,
                     ProposalBlacklisted,
@@ -3327,7 +3357,6 @@ pub mod node_runtime {
                     InvalidHash,
                     NoProposal,
                     AlreadyVetoed,
-                    NotDelegated,
                     DuplicatePreimage,
                     NotImminent,
                     TooEarly,
@@ -3336,8 +3365,6 @@ pub mod node_runtime {
                     ReferendumInvalid,
                     PreimageInvalid,
                     NoneWaiting,
-                    NotLocked,
-                    NotExpired,
                     NotVoter,
                     NoPermission,
                     AlreadyDelegating,
@@ -3348,7 +3375,6 @@ pub mod node_runtime {
                     Nonsense,
                     WrongUpperBound,
                     MaxVotesReached,
-                    InvalidWitness,
                     TooManyProposals,
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -3396,7 +3422,6 @@ pub mod node_runtime {
                         u128,
                         __runtime_types::sp_core::crypto::AccountId32,
                     ),
-                    Unlocked(__runtime_types::sp_core::crypto::AccountId32),
                     Blacklisted(__runtime_types::primitive_types::H256),
                 }
             }
@@ -3491,7 +3516,7 @@ pub mod node_runtime {
                 use super::__runtime_types;
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call {
-                    submit_unsigned { solution : __runtime_types :: pallet_election_provider_multi_phase :: RawSolution < __runtime_types :: node_runtime :: NposCompactSolution16 > , witness : __runtime_types :: pallet_election_provider_multi_phase :: SolutionOrSnapshotSize , } , set_minimum_untrusted_score { maybe_next_score : Option < [u128 ; 3usize] > , } , set_emergency_election_result { supports : Vec < (__runtime_types :: sp_core :: crypto :: AccountId32 , __runtime_types :: sp_npos_elections :: Support < __runtime_types :: sp_core :: crypto :: AccountId32 > ,) > , } , submit { solution : __runtime_types :: pallet_election_provider_multi_phase :: RawSolution < __runtime_types :: node_runtime :: NposCompactSolution16 > , num_signed_submissions : u32 , } , }
+                    submit_unsigned { raw_solution : std :: boxed :: Box < __runtime_types :: pallet_election_provider_multi_phase :: RawSolution < __runtime_types :: node_runtime :: NposSolution16 > > , witness : __runtime_types :: pallet_election_provider_multi_phase :: SolutionOrSnapshotSize , } , set_minimum_untrusted_score { maybe_next_score : Option < [u128 ; 3usize] > , } , set_emergency_election_result { supports : Vec < (__runtime_types :: sp_core :: crypto :: AccountId32 , __runtime_types :: sp_npos_elections :: Support < __runtime_types :: sp_core :: crypto :: AccountId32 > ,) > , } , submit { raw_solution : std :: boxed :: Box < __runtime_types :: pallet_election_provider_multi_phase :: RawSolution < __runtime_types :: node_runtime :: NposSolution16 > > , num_signed_submissions : u32 , } , }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error {
                     PreDispatchEarlySubmission,
@@ -3529,7 +3554,7 @@ pub mod node_runtime {
                 pub struct SignedSubmission<_0, _1, _2> {
                     pub who: _0,
                     pub deposit: _1,
-                    pub solution:
+                    pub raw_solution:
                         __runtime_types::pallet_election_provider_multi_phase::RawSolution<_2>,
                     pub reward: _1,
                 }
@@ -3550,7 +3575,7 @@ pub mod node_runtime {
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct RawSolution<_0> {
-                pub compact: _0,
+                pub solution: _0,
                 pub score: [u128; 3usize],
                 pub round: u32,
             }
@@ -3596,8 +3621,8 @@ pub mod node_runtime {
                         has_replacement: bool,
                     },
                     clean_defunct_voters {
-                        _num_voters: u32,
-                        _num_defunct: u32,
+                        num_voters: u32,
+                        num_defunct: u32,
                     },
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -3727,16 +3752,20 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call {
                     report_equivocation {
-                        equivocation_proof: __runtime_types::sp_finality_grandpa::EquivocationProof<
-                            __runtime_types::primitive_types::H256,
-                            u32,
+                        equivocation_proof: std::boxed::Box<
+                            __runtime_types::sp_finality_grandpa::EquivocationProof<
+                                __runtime_types::primitive_types::H256,
+                                u32,
+                            >,
                         >,
                         key_owner_proof: __runtime_types::sp_session::MembershipProof,
                     },
                     report_equivocation_unsigned {
-                        equivocation_proof: __runtime_types::sp_finality_grandpa::EquivocationProof<
-                            __runtime_types::primitive_types::H256,
-                            u32,
+                        equivocation_proof: std::boxed::Box<
+                            __runtime_types::sp_finality_grandpa::EquivocationProof<
+                                __runtime_types::primitive_types::H256,
+                                u32,
+                            >,
                         >,
                         key_owner_proof: __runtime_types::sp_session::MembershipProof,
                     },
@@ -3787,7 +3816,8 @@ pub mod node_runtime {
                         account: __runtime_types::sp_core::crypto::AccountId32,
                     },
                     set_identity {
-                        info: __runtime_types::pallet_identity::types::IdentityInfo,
+                        info:
+                            std::boxed::Box<__runtime_types::pallet_identity::types::IdentityInfo>,
                     },
                     set_subs {
                         subs: Vec<(
@@ -3901,7 +3931,7 @@ pub mod node_runtime {
             pub mod types {
                 use super::__runtime_types;
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-                pub struct BitFlags<_0>(pub u64, pub core::marker::PhantomData<(_0)>);
+                pub struct BitFlags<_0>(pub u64, pub ::core::marker::PhantomData<_0>);
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Data {
                     None,
@@ -4008,7 +4038,7 @@ pub mod node_runtime {
                 pub enum Call {
                     heartbeat {
                         heartbeat: __runtime_types::pallet_im_online::Heartbeat<u32>,
-                        _signature:
+                        signature:
                             __runtime_types::pallet_im_online::sr25519::app_sr25519::Signature,
                     },
                 }
@@ -4101,7 +4131,7 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call {
                     buy_ticket {
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     set_calls {
                         calls: Vec<__runtime_types::node_runtime::Call>,
@@ -4181,7 +4211,7 @@ pub mod node_runtime {
                 MembersReset,
                 KeyChanged,
                 Dummy,
-                __Ignore(core::marker::PhantomData<(_2, _0, _1)>),
+                __Ignore(::core::marker::PhantomData<(_1, _2, _0)>),
             }
         }
         pub mod pallet_multisig {
@@ -4192,7 +4222,7 @@ pub mod node_runtime {
                 pub enum Call {
                     as_multi_threshold_1 {
                         other_signatories: Vec<__runtime_types::sp_core::crypto::AccountId32>,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     as_multi {
                         threshold: u16,
@@ -4293,7 +4323,7 @@ pub mod node_runtime {
                     proxy {
                         real: __runtime_types::sp_core::crypto::AccountId32,
                         force_proxy_type: Option<__runtime_types::node_runtime::ProxyType>,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     add_proxy {
                         delegate: __runtime_types::sp_core::crypto::AccountId32,
@@ -4334,7 +4364,7 @@ pub mod node_runtime {
                         delegate: __runtime_types::sp_core::crypto::AccountId32,
                         real: __runtime_types::sp_core::crypto::AccountId32,
                         force_proxy_type: Option<__runtime_types::node_runtime::ProxyType>,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -4385,7 +4415,7 @@ pub mod node_runtime {
                 pub enum Call {
                     as_recovered {
                         account: __runtime_types::sp_core::crypto::AccountId32,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     set_recovered {
                         lost: __runtime_types::sp_core::crypto::AccountId32,
@@ -4480,7 +4510,7 @@ pub mod node_runtime {
                         when: u32,
                         maybe_periodic: Option<(u32, u32)>,
                         priority: u8,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     cancel {
                         when: u32,
@@ -4491,7 +4521,7 @@ pub mod node_runtime {
                         when: u32,
                         maybe_periodic: Option<(u32, u32)>,
                         priority: u8,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     cancel_named {
                         id: Vec<u8>,
@@ -4500,14 +4530,14 @@ pub mod node_runtime {
                         after: u32,
                         maybe_periodic: Option<(u32, u32)>,
                         priority: u8,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     schedule_named_after {
                         id: Vec<u8>,
                         after: u32,
                         maybe_periodic: Option<(u32, u32)>,
                         priority: u8,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -4540,7 +4570,7 @@ pub mod node_runtime {
                 pub call: _0,
                 pub maybe_periodic: Option<(_1, _1)>,
                 pub origin: _2,
-                pub __chameleon_unused_type_params: core::marker::PhantomData<(_3,)>,
+                pub __chameleon_unused_type_params: ::core::marker::PhantomData<_3>,
             }
         }
         pub mod pallet_session {
@@ -4671,7 +4701,7 @@ pub mod node_runtime {
                 NewMaxMembers(u32),
                 Unfounded(_0),
                 Deposit(_1),
-                __Ignore(core::marker::PhantomData<(_2,)>),
+                __Ignore(::core::marker::PhantomData<_2>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Vote {
@@ -4767,7 +4797,7 @@ pub mod node_runtime {
                         },
                         set_history_depth {
                             new_history_depth: u32,
-                            _era_items_deleted: u32,
+                            era_items_deleted: u32,
                         },
                         reap_stash {
                             stash: __runtime_types::sp_core::crypto::AccountId32,
@@ -4939,11 +4969,11 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Call {
                     sudo {
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     sudo_unchecked_weight {
-                        call: __runtime_types::node_runtime::Call,
-                        _weight: u64,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
+                        weight: u64,
                     },
                     set_key {
                         new: __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -4956,7 +4986,7 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
@@ -5434,11 +5464,15 @@ pub mod node_runtime {
                     },
                     as_derivative {
                         index: u16,
-                        call: __runtime_types::node_runtime::Call,
+                        call: std::boxed::Box<__runtime_types::node_runtime::Call>,
                     },
                     batch_all {
                         calls: Vec<__runtime_types::node_runtime::Call>,
                     },
+                }
+                #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
+                pub enum Error {
+                    TooManyCalls,
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Event {
@@ -5466,7 +5500,8 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        schedule: __runtime_types::pallet_vesting::VestingInfo<u128, u32>,
+                        schedule:
+                            __runtime_types::pallet_vesting::vesting_info::VestingInfo<u128, u32>,
                     },
                     force_vested_transfer {
                         source: __runtime_types::sp_runtime::multiaddress::MultiAddress<
@@ -5477,14 +5512,21 @@ pub mod node_runtime {
                             __runtime_types::sp_core::crypto::AccountId32,
                             u32,
                         >,
-                        schedule: __runtime_types::pallet_vesting::VestingInfo<u128, u32>,
+                        schedule:
+                            __runtime_types::pallet_vesting::vesting_info::VestingInfo<u128, u32>,
+                    },
+                    merge_schedules {
+                        schedule1_index: u32,
+                        schedule2_index: u32,
                     },
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Error {
                     NotVesting,
-                    ExistingVestingSchedule,
+                    AtMaxVestingSchedules,
                     AmountLow,
+                    ScheduleIndexOutOfBounds,
+                    InvalidScheduleParams,
                 }
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Event {
@@ -5492,11 +5534,19 @@ pub mod node_runtime {
                     VestingCompleted(__runtime_types::sp_core::crypto::AccountId32),
                 }
             }
+            pub mod vesting_info {
+                use super::__runtime_types;
+                #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
+                pub struct VestingInfo<_0, _1> {
+                    pub locked: _0,
+                    pub per_block: _0,
+                    pub starting_block: _1,
+                }
+            }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-            pub struct VestingInfo<_0, _1> {
-                pub locked: _0,
-                pub per_block: _0,
-                pub starting_block: _1,
+            pub enum Releases {
+                V0,
+                V1,
             }
         }
         pub mod primitive_types {
@@ -5590,6 +5640,11 @@ pub mod node_runtime {
                 pub struct AccountId32(pub [u8; 32usize]);
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub struct KeyTypeId(pub [u8; 4usize]);
+            }
+            pub mod ecdsa {
+                use super::__runtime_types;
+                #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
+                pub struct Signature(pub [u8; 65usize]);
             }
             pub mod ed25519 {
                 use super::__runtime_types;
@@ -5956,20 +6011,24 @@ pub mod node_runtime {
                 pub mod header {
                     use super::__runtime_types;
                     #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-                    pub struct Header {
+                    pub struct Header<_0, _1> {
                         pub parent_hash: __runtime_types::primitive_types::H256,
-                        pub number: u32,
+                        pub number: _0,
                         pub state_root: __runtime_types::primitive_types::H256,
                         pub extrinsics_root: __runtime_types::primitive_types::H256,
                         pub digest: __runtime_types::sp_runtime::generic::digest::Digest<
                             __runtime_types::primitive_types::H256,
                         >,
+                        pub __chameleon_unused_type_params: ::core::marker::PhantomData<_1>,
                     }
                 }
                 pub mod unchecked_extrinsic {
                     use super::__runtime_types;
                     #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-                    pub struct UncheckedExtrinsic(Vec<u8>);
+                    pub struct UncheckedExtrinsic<_0, _1, _2, _3>(
+                        Vec<u8>,
+                        pub ::core::marker::PhantomData<(_1, _0, _2, _3)>,
+                    );
                 }
             }
             pub mod multiaddress {
@@ -6004,6 +6063,12 @@ pub mod node_runtime {
                 NoProviders,
                 Token(__runtime_types::sp_runtime::TokenError),
                 Arithmetic(__runtime_types::sp_runtime::ArithmeticError),
+            }
+            #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
+            pub enum MultiSignature {
+                Ed25519(__runtime_types::sp_core::ed25519::Signature),
+                Sr25519(__runtime_types::sp_core::sr25519::Signature),
+                Ecdsa(__runtime_types::sp_core::ecdsa::Signature),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum TokenError {

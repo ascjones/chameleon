@@ -7,6 +7,3 @@ members = [
 exclude = [
     "examples/",
 ]
-
-[patch.crates-io]
-scale-info = { git = "https://github.com/montekki/scale-info", branch = "fs-add-type-id" }

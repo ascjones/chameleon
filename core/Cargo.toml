@@ -12,9 +12,12 @@ proc-macro2 = "1.0"
 quote = "1"
 syn = { version = "1.0", features = ["parsing", "full"] }
 scale = { package = "parity-scale-codec", version = "2.0", default-features = false}
-scale-info = { version = "0.10.0", default-features = false, features = ["derive", "decode"] }
+scale-info = { version = "0.12.0", default-features = false, features = ["derive", "decode"] }
 
 thiserror = "1.0.22"
+
+[dev-dependencies]
+pretty_assertions = "0.7.2"
 
 [features]
 default = ["std", "bit-vec"]

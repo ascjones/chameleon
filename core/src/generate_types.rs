@@ -113,6 +113,7 @@ impl<'a> TypeGenerator<'a> {
             TypeDef::Tuple(tuple) => tuple.fields().iter().map(|f| f.id()).collect(),
             TypeDef::Compact(compact) => vec![compact.type_param().id()],
             TypeDef::BitSequence(seq) => vec![seq.bit_order_type().id(), seq.bit_store_type().id()],
+            TypeDef::Range(range) => vec![range.index_type().id()],
             _ => ty
                 .type_params()
                 .iter()
@@ -258,10 +259,12 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
 
                 let unused_type_params = type_params_set
                     .difference(&used_type_params)
+                    .cloned()
                     .collect::<Vec<_>>();
                 if !unused_type_params.is_empty() {
+                    let phantom = Self::phantom_data(&unused_type_params);
                     variants.push(quote! {
-                        __Ignore(core::marker::PhantomData<(#( #unused_type_params, )*)>)
+                        __Ignore(#phantom)
                     })
                 }
 
@@ -333,11 +336,15 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = fields
                 .iter()
                 .map(|(name, ty, ty_name)| match ty_name {
-                    Some(ty_name) if is_struct => {
+                    Some(ty_name) => {
                         let ty = ty_toks(ty_name, ty);
-                        quote! { pub #name: #ty }
+                        if is_struct {
+                            quote! { pub #name: #ty }
+                        } else {
+                            quote! { #name: #ty }
+                        }
                     }
-                    _ => {
+                    None => {
                         quote! { #name: #ty }
                     }
                 })
@@ -346,8 +353,9 @@ impl<'a> ModuleType<'a> {
             let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
 
             if is_struct && !unused_params.is_empty() {
+                let phantom = Self::phantom_data(&unused_params);
                 fields_tokens.push(quote! {
-                    pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
+                    pub __chameleon_unused_type_params: #phantom
                 })
             }
 
@@ -370,11 +378,15 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = type_paths
                 .iter()
                 .map(|(ty, ty_name)| match ty_name {
-                    Some(ty_name) if is_struct => {
+                    Some(ty_name) => {
                         let ty = ty_toks(ty_name, ty);
-                        quote! { pub #ty }
+                        if is_struct {
+                            quote! { pub #ty }
+                        } else {
+                            quote! { #ty }
+                        }
                     }
-                    _ => {
+                    None => {
                         quote! { #ty }
                     }
                 })
@@ -384,8 +396,8 @@ impl<'a> ModuleType<'a> {
                 unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
 
             if is_struct && !unused_params.is_empty() {
-                fields_tokens
-                    .push(quote! { pub core::marker::PhantomData<(#( #unused_params ),*)> })
+                let phantom_data = Self::phantom_data(&unused_params);
+                fields_tokens.push(quote! { pub #phantom_data })
             }
 
             let fields = quote! { ( #( #fields_tokens, )* ) };
@@ -400,6 +412,16 @@ impl<'a> ModuleType<'a> {
         } else {
             panic!("Fields must be either all named or all unnamed")
         }
+    }
+
+    fn phantom_data(params: &[TypeParameter]) -> TokenStream2 {
+        let params = if params.len() == 1 {
+            let param = &params[0];
+            quote! { #param }
+        } else {
+            quote! { ( #( #params ), * ) }
+        };
+        quote! ( ::core::marker::PhantomData<#params> )
     }
 }
 
@@ -533,6 +555,15 @@ impl TypePathType {
 
                 syn::Type::Path(type_path)
             }
+            TypeDef::Range(range) => {
+                let idx = &self.params[0];
+                let type_path = if range.inclusive() {
+                    syn::parse_quote! { ::core::ops::RangeInclusive<#idx> }
+                } else {
+                    syn::parse_quote! { ::core::ops::Range<#idx> }
+                };
+                syn::Type::Path(type_path)
+            }
         }
     }
 
@@ -567,6 +598,7 @@ impl quote::ToTokens for TypeParameter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
     use scale_info::{meta_type, Registry, TypeInfo};
 
     const MOD_PATH: &'static [&'static str] = &["chameleon_core", "generate_types", "tests"];
@@ -787,7 +819,7 @@ mod tests {
     }
 
     #[test]
-    fn box_fields() {
+    fn box_fields_struct() {
         // todo: [AJ] remove hack for Box and make no_std compatible using `alloc::Box`
 
         use std::boxed::Box;
@@ -816,6 +848,74 @@ mod tests {
                     pub struct S {
                         pub a: std::boxed::Box<bool>,
                         pub b: std::boxed::Box<u32>,
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[test]
+    fn box_fields_enum() {
+        use std::boxed::Box;
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        enum E {
+            A(Box<bool>),
+            B { a: Box<u32> },
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<E>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                    pub enum E {
+                        A(std::boxed::Box<bool>,),
+                        B { a: std::boxed::Box<u32>, },
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[test]
+    fn range_fields() {
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        struct S {
+            a: core::ops::Range<u32>,
+            b: core::ops::RangeInclusive<u32>,
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<S>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                    pub struct S {
+                        pub a: ::core::ops::Range<u32>,
+                        pub b: ::core::ops::RangeInclusive<u32>,
                     }
                 }
             }
@@ -989,12 +1089,12 @@ mod tests {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct NamedFields<_0> {
                         pub b: u32,
-                        pub __chameleon_unused_type_params: core::marker::PhantomData<(_0,)>,
+                        pub __chameleon_unused_type_params: ::core::marker::PhantomData<_0>,
                     }
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct UnnamedFields<_0, _1> (
                         pub (u32, u32,),
-                        pub core::marker::PhantomData<(_0, _1)>,
+                        pub ::core::marker::PhantomData<(_0, _1)>,
                     );
                 }
             }
