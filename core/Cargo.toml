@@ -16,6 +16,9 @@ scale-info = { version = "0.12.0", default-features = false, features = ["derive
 
 thiserror = "1.0.22"
 
+[dev-dependencies]
+pretty_assertions = "0.7.2"
+
 [features]
 default = ["std", "bit-vec"]
 std = [

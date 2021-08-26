@@ -334,11 +334,15 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = fields
                 .iter()
                 .map(|(name, ty, ty_name)| match ty_name {
-                    Some(ty_name) if is_struct => {
+                    Some(ty_name) => {
                         let ty = ty_toks(ty_name, ty);
-                        quote! { pub #name: #ty }
+                        if is_struct {
+                            quote! { pub #name: #ty }
+                        } else {
+                            quote! { #name: #ty }
+                        }
                     }
-                    _ => {
+                    None => {
                         quote! { #name: #ty }
                     }
                 })
@@ -371,11 +375,15 @@ impl<'a> ModuleType<'a> {
             let mut fields_tokens = type_paths
                 .iter()
                 .map(|(ty, ty_name)| match ty_name {
-                    Some(ty_name) if is_struct => {
+                    Some(ty_name) => {
                         let ty = ty_toks(ty_name, ty);
-                        quote! { pub #ty }
+                        if is_struct {
+                            quote! { pub #ty }
+                        } else {
+                            quote! { #ty }
+                        }
                     }
-                    _ => {
+                    None => {
                         quote! { #ty }
                     }
                 })
@@ -577,6 +585,7 @@ impl quote::ToTokens for TypeParameter {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use pretty_assertions::assert_eq;
     use scale_info::{meta_type, Registry, TypeInfo};
 
     const MOD_PATH: &'static [&'static str] = &["chameleon_core", "generate_types", "tests"];
@@ -797,7 +806,7 @@ mod tests {
     }
 
     #[test]
-    fn box_fields() {
+    fn box_fields_struct() {
         // todo: [AJ] remove hack for Box and make no_std compatible using `alloc::Box`
 
         use std::boxed::Box;
@@ -826,6 +835,41 @@ mod tests {
                     pub struct S {
                         pub a: std::boxed::Box<bool>,
                         pub b: std::boxed::Box<u32>,
+                    }
+                }
+            }
+            .to_string()
+        )
+    }
+
+    #[test]
+    fn box_fields_enum() {
+        use std::boxed::Box;
+
+        #[allow(unused)]
+        #[derive(TypeInfo)]
+        enum E {
+            A(Box<bool>),
+            B { a: Box<u32> },
+        }
+
+        let mut registry = Registry::new();
+        registry.register_type(&meta_type::<E>());
+        let portable_types: PortableRegistry = registry.into();
+
+        let type_gen = TypeGenerator::new(&portable_types, "root");
+        let types = type_gen.generate_types_mod();
+        let tests_mod = types.get_mod(MOD_PATH).unwrap();
+
+        assert_eq!(
+            tests_mod.into_token_stream().to_string(),
+            quote! {
+                pub mod tests {
+                    use super::root;
+                    #[derive(Debug, ::codec::Encode, ::codec::Decode)]
+                    pub enum E {
+                        A(std::boxed::Box<bool>,),
+                        B { a: std::boxed::Box<u32>, },
                     }
                 }
             }
