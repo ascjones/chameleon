@@ -259,10 +259,12 @@ impl<'a> quote::ToTokens for ModuleType<'a> {
 
                 let unused_type_params = type_params_set
                     .difference(&used_type_params)
+                    .cloned()
                     .collect::<Vec<_>>();
                 if !unused_type_params.is_empty() {
+                    let phantom = Self::phantom_data(&unused_type_params);
                     variants.push(quote! {
-                        __Ignore(core::marker::PhantomData<(#( #unused_type_params, )*)>)
+                        __Ignore(#phantom)
                     })
                 }
 
@@ -351,8 +353,9 @@ impl<'a> ModuleType<'a> {
             let unused_params = unused_type_params(type_params, fields.iter().map(|(_, ty, _)| ty));
 
             if is_struct && !unused_params.is_empty() {
+                let phantom = Self::phantom_data(&unused_params);
                 fields_tokens.push(quote! {
-                    pub __chameleon_unused_type_params: core::marker::PhantomData<(#( #unused_params, )*)>
+                    pub __chameleon_unused_type_params: #phantom
                 })
             }
 
@@ -393,8 +396,9 @@ impl<'a> ModuleType<'a> {
                 unused_type_params(type_params, type_paths.iter().map(|(ty, _)| ty));
 
             if is_struct && !unused_params.is_empty() {
+                let phantom_data = Self::phantom_data(&unused_params);
                 fields_tokens
-                    .push(quote! { pub core::marker::PhantomData<(#( #unused_params ),*)> })
+                    .push(quote! { pub #phantom_data })
             }
 
             let fields = quote! { ( #( #fields_tokens, )* ) };
@@ -409,6 +413,17 @@ impl<'a> ModuleType<'a> {
         } else {
             panic!("Fields must be either all named or all unnamed")
         }
+    }
+
+    fn phantom_data(params: &[TypeParameter]) -> TokenStream2 {
+        let params =
+            if params.len() == 1 {
+                let param = &params[0];
+                quote! { #param }
+            } else {
+                quote! { ( #( #params ), * ) }
+            };
+        quote! ( ::core::marker::PhantomData<#params> )
     }
 }
 
@@ -1076,12 +1091,12 @@ mod tests {
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct NamedFields<_0> {
                         pub b: u32,
-                        pub __chameleon_unused_type_params: core::marker::PhantomData<(_0,)>,
+                        pub __chameleon_unused_type_params: ::core::marker::PhantomData<_0>,
                     }
                     #[derive(Debug, ::codec::Encode, ::codec::Decode)]
                     pub struct UnnamedFields<_0, _1> (
                         pub (u32, u32,),
-                        pub core::marker::PhantomData<(_0, _1)>,
+                        pub ::core::marker::PhantomData<(_0, _1)>,
                     );
                 }
             }

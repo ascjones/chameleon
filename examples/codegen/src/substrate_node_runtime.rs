@@ -2948,14 +2948,14 @@ pub mod node_runtime {
                 Executed(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
                 MemberExecuted(_0, Result<(), __runtime_types::sp_runtime::DispatchError>),
                 Closed(_0, u32, u32),
-                __Ignore(core::marker::PhantomData<(_2,)>),
+                __Ignore(::core::marker::PhantomData<_2>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum RawOrigin<_0, _1> {
                 Members(u32, u32),
                 Member(_0),
                 _Phantom,
-                __Ignore(core::marker::PhantomData<(_1,)>),
+                __Ignore(::core::marker::PhantomData<_1>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub struct Votes<_0, _1> {
@@ -3227,7 +3227,7 @@ pub mod node_runtime {
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub struct RawTombstoneContractInfo<_0, _1>(
                     pub _0,
-                    pub core::marker::PhantomData<(_1)>,
+                    pub ::core::marker::PhantomData<_1>,
                 );
             }
             pub mod wasm {
@@ -3931,7 +3931,7 @@ pub mod node_runtime {
             pub mod types {
                 use super::__runtime_types;
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
-                pub struct BitFlags<_0>(pub u64, pub core::marker::PhantomData<(_0)>);
+                pub struct BitFlags<_0>(pub u64, pub ::core::marker::PhantomData<_0>);
                 #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                 pub enum Data {
                     None,
@@ -4211,7 +4211,7 @@ pub mod node_runtime {
                 MembersReset,
                 KeyChanged,
                 Dummy,
-                __Ignore(core::marker::PhantomData<(_0, _1, _2)>),
+                __Ignore(::core::marker::PhantomData<(_1, _2, _0)>),
             }
         }
         pub mod pallet_multisig {
@@ -4570,7 +4570,7 @@ pub mod node_runtime {
                 pub call: _0,
                 pub maybe_periodic: Option<(_1, _1)>,
                 pub origin: _2,
-                pub __chameleon_unused_type_params: core::marker::PhantomData<(_3,)>,
+                pub __chameleon_unused_type_params: ::core::marker::PhantomData<_3>,
             }
         }
         pub mod pallet_session {
@@ -4701,7 +4701,7 @@ pub mod node_runtime {
                 NewMaxMembers(u32),
                 Unfounded(_0),
                 Deposit(_1),
-                __Ignore(core::marker::PhantomData<(_2,)>),
+                __Ignore(::core::marker::PhantomData<_2>),
             }
             #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
             pub enum Vote {
@@ -6019,7 +6019,7 @@ pub mod node_runtime {
                         pub digest: __runtime_types::sp_runtime::generic::digest::Digest<
                             __runtime_types::primitive_types::H256,
                         >,
-                        pub __chameleon_unused_type_params: core::marker::PhantomData<(_1,)>,
+                        pub __chameleon_unused_type_params: ::core::marker::PhantomData<_1>,
                     }
                 }
                 pub mod unchecked_extrinsic {
@@ -6027,7 +6027,7 @@ pub mod node_runtime {
                     #[derive(Debug, :: codec :: Encode, :: codec :: Decode)]
                     pub struct UncheckedExtrinsic<_0, _1, _2, _3>(
                         Vec<u8>,
-                        pub core::marker::PhantomData<(_1, _0, _2, _3)>,
+                        pub ::core::marker::PhantomData<(_1, _0, _2, _3)>,
                     );
                 }
             }
