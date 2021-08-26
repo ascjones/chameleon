@@ -1,9 +1,11 @@
 use crate::{TokenStream2, TypeGenerator};
-use frame_metadata::{v14::RuntimeMetadataV14, RuntimeMetadata, RuntimeMetadataPrefixed, PalletCallMetadata};
+use frame_metadata::{
+    v14::RuntimeMetadataV14, PalletCallMetadata, RuntimeMetadata, RuntimeMetadataPrefixed,
+};
 use heck::SnakeCase as _;
 use quote::{format_ident, quote};
-use scale_info::prelude::string::ToString;
 use scale_info::form::PortableForm;
+use scale_info::prelude::string::ToString;
 
 pub struct RuntimeGenerator {
     metadata: RuntimeMetadataV14,
@@ -89,7 +91,11 @@ impl RuntimeGenerator {
         }
     }
 
-    fn generate_call_structs(&self, type_gen: &TypeGenerator, call: &PalletCallMetadata<PortableForm>) -> Vec<TokenStream2> {
+    fn generate_call_structs(
+        &self,
+        type_gen: &TypeGenerator,
+        call: &PalletCallMetadata<PortableForm>,
+    ) -> Vec<TokenStream2> {
         let ty = call.ty;
         let name = type_gen.resolve_type_path(ty.id(), &[]);
         use crate::generate_types::TypePath;
@@ -105,13 +111,11 @@ impl RuntimeGenerator {
                         .iter()
                         .map(|var| {
                             use heck::CamelCase;
-                            let name =
-                                format_ident!("{}", var.name().to_string().to_camel_case());
+                            let name = format_ident!("{}", var.name().to_string().to_camel_case());
                             let args = var.fields().iter().filter_map(|field| {
                                 field.name().map(|name| {
                                     let name = format_ident!("{}", name);
-                                    let ty =
-                                        type_gen.resolve_type_path(field.ty().id(), &[]);
+                                    let ty = type_gen.resolve_type_path(field.ty().id(), &[]);
                                     quote! { #name: #ty }
                                 })
                             });

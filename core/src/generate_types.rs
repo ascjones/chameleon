@@ -397,8 +397,7 @@ impl<'a> ModuleType<'a> {
 
             if is_struct && !unused_params.is_empty() {
                 let phantom_data = Self::phantom_data(&unused_params);
-                fields_tokens
-                    .push(quote! { pub #phantom_data })
+                fields_tokens.push(quote! { pub #phantom_data })
             }
 
             let fields = quote! { ( #( #fields_tokens, )* ) };
@@ -416,13 +415,12 @@ impl<'a> ModuleType<'a> {
     }
 
     fn phantom_data(params: &[TypeParameter]) -> TokenStream2 {
-        let params =
-            if params.len() == 1 {
-                let param = &params[0];
-                quote! { #param }
-            } else {
-                quote! { ( #( #params ), * ) }
-            };
+        let params = if params.len() == 1 {
+            let param = &params[0];
+            quote! { #param }
+        } else {
+            quote! { ( #( #params ), * ) }
+        };
         quote! ( ::core::marker::PhantomData<#params> )
     }
 }
