@@ -1,6 +1,12 @@
 # chameleon
 
+## Archived
+
+### Code copied into `subxt-codegen` for now, though this may be extracted again in the future. See https://github.com/paritytech/subxt/pull/294.
+
 SCALE compatible type generation for substrate runtimes. No dependencies on substrate crates required!
+
+------------------------------
 
 Accepts a SCALE encoded metadata file via CLI or a macro, and generates a Rust module with all types required for
 interacting with pallets for the given substrate runtime.
